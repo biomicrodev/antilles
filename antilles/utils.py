@@ -4,6 +4,9 @@ import pandas
 
 
 def flatten(l):
+    """
+    Thanks to this StackOverflow answer: https://stackoverflow.com/a/10824420
+    """
     for i in l:
         if isinstance(i, (list, tuple)):
             for j in flatten(i):
