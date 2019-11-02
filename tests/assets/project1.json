@@ -1,0 +1,14 @@
+{
+  "block": {
+    "name": "BLK1",
+    "device": "DEV1",
+    "samples": 1
+  },
+  "samples": [
+    {
+      "name": "SMP1",
+      "device": "DEV1",
+      "cohorts": null
+    }
+  ]
+}

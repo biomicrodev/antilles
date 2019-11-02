@@ -1,0 +1,37 @@
+{
+  "block": {
+    "name": "BLK2",
+    "device": "DEV1",
+    "cohorts": {
+      "tissue": "MC38",
+      "systemic_treatment": "aCSF1"
+    },
+    "samples": 3
+  },
+  "samples": [
+    {
+      "name": "SMP1",
+      "device": "DEV1",
+      "cohorts": {
+        "tissue": "MC38",
+        "systemic_treatment": "aCSF1"
+      }
+    },
+    {
+      "name": "SMP2",
+      "device": "DEV1",
+      "cohorts": {
+        "tissue": "MC38",
+        "systemic_treatment": "aCSF1"
+      }
+    },
+    {
+      "name": "SMP3",
+      "device": "DEV1",
+      "cohorts": {
+        "tissue": "MC38",
+        "systemic_treatment": "aCSF1"
+      }
+    }
+  ]
+}

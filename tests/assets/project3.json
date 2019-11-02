@@ -1,0 +1,29 @@
+{
+  "block": {
+    "name": "BLK3",
+    "device": "DEV1",
+    "cohorts": null,
+    "samples": [
+      "SMP1",
+      "SMP2",
+      "SMP3"
+    ]
+  },
+  "samples": [
+    {
+      "name": "SMP1",
+      "device": "DEV1",
+      "cohorts": null
+    },
+    {
+      "name": "SMP2",
+      "device": "DEV1",
+      "cohorts": null
+    },
+    {
+      "name": "SMP3",
+      "device": "DEV1",
+      "cohorts": null
+    }
+  ]
+}
