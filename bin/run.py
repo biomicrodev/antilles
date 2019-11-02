@@ -1,9 +1,23 @@
 import logging.config
+import time
 
 logging.config.fileConfig('../logging.ini')
 log = logging.getLogger(__name__)
 
 
+def profile(func):
+    def wrapper(*args, **kwargs):
+        t0 = time.time()
+
+        func(*args, **kwargs)
+
+        t1 = time.time()
+        log.info(f'Elapsed time: {t1 - t0:.3f} s')
+
+    return wrapper
+
+
+@profile
 def main():
     project_name = 'TEST'
     block_name = 'BLK1'
@@ -29,11 +43,4 @@ def main():
 
 
 if __name__ == '__main__':
-    import time
-
-    t0 = time.time()
-
     main()
-
-    t = time.time() - t0
-    log.info(f'elapsed time: {t:.3f}s')
