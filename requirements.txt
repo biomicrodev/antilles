@@ -1,0 +1,9 @@
+matplotlib
+numpy
+openslide-python
+pandas
+pillow
+pypubsub
+scikit-image
+seaborn
+wxpython
