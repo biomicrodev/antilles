@@ -21,6 +21,15 @@ def get_sample_prefix():
 
 
 class DAO:
+    """
+    A collection of static methods for accessing resources on disk without
+    having to know the basepath. This helps immensely with moving project
+    directories around, which happens very often in our lab.
+
+    Some might say this is non-pythonic, but it gets the job done for now, and
+    we have no need for more complex persistence.
+    """
+
     @staticmethod
     def abs(path):
         return os.path.join(BASEPATH, path)
