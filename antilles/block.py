@@ -141,14 +141,12 @@ class Block:
         coords_init = self.init_coords_slides()
         if DAO.is_file(filepath):
             coords = DAO.read_csv(filepath)
-            coords = upsert(coords, coords_init, columns_upsert)
-            exists = True
+            coords = upsert(coords, using=coords_init, cols=columns_upsert)
 
         else:
             coords = coords_init
-            exists = False
 
-        return coords, exists
+        return coords
 
     def init_angles_coarse(self):
         df = [{'sample': s['name'], 'angle': -90} for s in self.samples]
@@ -163,14 +161,12 @@ class Block:
         filepath = join(self.relpath, filename)
         if DAO.is_file(filepath):
             angles = DAO.read_csv(filepath)
-            angles = upsert(angles, angles_init, ['sample'])
-            exists = True
+            angles = upsert(angles, using=angles_init, cols=['sample'])
 
         else:
             angles = angles_init
-            exists = False
 
-        return angles, exists
+        return angles
 
     def save(self, df, field, overwrite=True):
         filename = join('annotations', f'{field.name}.csv')

@@ -1,20 +1,10 @@
 import logging.config
-import time
+
+from antilles.pipeline.extract import Extractor
+from antilles.utils import profile
 
 logging.config.fileConfig('../logging.ini')
 log = logging.getLogger(__name__)
-
-
-def profile(func):
-    def wrapper(*args, **kwargs):
-        t0 = time.time()
-
-        func(*args, **kwargs)
-
-        t1 = time.time()
-        log.info(f'Elapsed time: {t1 - t0:.3f} s')
-
-    return wrapper
 
 
 @profile
@@ -29,8 +19,8 @@ def main():
         pass
         # These parameters are not for analysis; these values are used to
         # compute a reasonable buffer around the region of interest.
-        # extractor = Extractor(project_name, block_name)
-        # extractor.adjust()
+        extractor = Extractor(project_name, block_name)
+        extractor.adjust()
         # extractor.run(repick=True, extract=False, params=params)
 
     # === FINE ADJUST ======================================================== #

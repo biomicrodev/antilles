@@ -48,7 +48,7 @@ def calc_downsample_factor(dims):
                    float(h) / float(screen_size_eff[1])))
 
 
-def downsample(path):
+def get_thumbnail(path):
     with openslide.OpenSlide(DAO.abs(path)) as obj:
         dims = obj.dimensions
         factor = calc_downsample_factor(dims)
