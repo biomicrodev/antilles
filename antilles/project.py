@@ -4,10 +4,11 @@ import re
 from os.path import join
 
 from antilles.block import Block
-from antilles.io import DAO
+from antilles.utils.io import DAO
 
 
 def validate(config):
+    # TODO: add deeper key-value pair checking
     keys = ['name', 'slide_regex', 'image_regex', 'output_order', 'blocks',
             'devices']
     for key in keys:

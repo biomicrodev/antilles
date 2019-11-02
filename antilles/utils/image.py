@@ -4,7 +4,7 @@ import numpy
 import openslide
 import wx
 
-from antilles.io import DAO
+from antilles.utils.io import DAO
 
 
 def get_screen_size():
@@ -40,9 +40,12 @@ def openslide_mpp(obj):
 
 
 def calc_downsample_factor(dims):
+    # area in which image is displayed is not quite as big as the screen
+    screen_size_eff = [s * 0.8 for s in screen_size]
+
     w, h = dims
-    return int(max(float(w) / float(screen_size[0]),
-                   float(h) / float(screen_size[1])))
+    return int(max(float(w) / float(screen_size_eff[0]),
+                   float(h) / float(screen_size_eff[1])))
 
 
 def downsample(path):

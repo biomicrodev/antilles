@@ -4,10 +4,10 @@ from os.path import join, dirname
 
 import pandas
 
-from antilles.image import get_slide_dims
-from antilles.io import DAO, get_sample_prefix
-from antilles.math import init_arrow_coords
 from antilles.utils import upsert
+from antilles.utils.image import get_slide_dims
+from antilles.utils.io import DAO, get_sample_prefix
+from antilles.utils.math import init_arrow_coords
 
 columns = ['relpath', 'project', 'block', 'level', 'sample', 'panel',
            'center_x', 'center_y']
