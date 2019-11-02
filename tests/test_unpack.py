@@ -1,10 +1,10 @@
 import json
 import unittest
 
-from antilles.project import unpack
+from antilles.block import unpack
 
 
-class TestUnpack(unittest.TestCase):
+class TestBlockUnpack(unittest.TestCase):
     def setUp(self):
         with open("./assets/project1.json") as file:
             self.project1 = json.load(file)

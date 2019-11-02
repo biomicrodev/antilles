@@ -4,8 +4,7 @@ import re
 from os.path import join
 
 from antilles.block import Block
-
-from antilles.io import DAO, get_sample_prefix
+from antilles.io import DAO
 
 
 def validate(config):
@@ -16,62 +15,15 @@ def validate(config):
             raise ValueError(f'{key} not in project.json!')
 
 
-def unpack(block):
-    samples = []
-
-    b_samples = block['samples']
-    if isinstance(b_samples, int):
-        if 'device' not in block.keys():
-            raise ValueError('Device not specified for block!')
-
-        cohorts = None
-        if 'cohorts' in block.keys():
-            cohorts = block['cohorts']
-
-        for s in range(b_samples):
-            samples.append({
-                'name': get_sample_prefix() + str(s + 1),
-                'device': block['device'],
-                'cohorts': cohorts
-            })
-
-    elif isinstance(b_samples, list):
-        device = block.get('device', None)
-        cohorts = block.get('cohorts', None)
-
-        for s in b_samples:
-            if isinstance(s, dict):
-                if 'name' not in s.keys():
-                    raise ValueError('Sample name not specified!')
-                if device is None and 'device' not in s.keys():
-                    raise ValueError('Device not specified!')
-
-                samples.append({
-                    'name': s['name'],
-                    'device': s['device'] if device is None else device,
-                    'cohorts': cohorts
-                })
-
-            elif isinstance(s, str):
-                if device is None:
-                    raise ValueError('Device not specified!')
-
-                samples.append({
-                    'name': s,
-                    'device': device,
-                    'cohorts': cohorts
-                })
-
-            else:
-                raise ValueError('Unknown sample type!')
-
-    return samples
-
-
 class Project:
     filename = 'project.json'
 
     def __init__(self, project_name):
+        """
+        A Project is a directory containing a project.json file and one or more
+        subdirectories, each of which represents a block belonging to the
+        project.
+        """
         self.log = logging.getLogger(__name__)
 
         self.name = project_name
@@ -114,12 +66,7 @@ class Project:
             raise ValueError('Blocks in file system and blocks in '
                              'project.json do not match!')
 
-        blocks = []
-        for name in blocks_os:
-            samples = next(unpack(b) for b in blocks_p if b['name'] == name)
-            blocks.append(Block(name, self, samples))
-
-        return blocks
+        return [Block(b, self) for b in blocks_p]
 
     def block(self, name):
         for b in self.blocks:
