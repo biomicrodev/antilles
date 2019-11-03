@@ -1,10 +1,23 @@
 import logging.config
+import time
 
 from antilles.pipeline.extract import Extractor
-from antilles.utils import profile
 
 logging.config.fileConfig('../logging.ini')
 log = logging.getLogger(__name__)
+
+
+def profile(func):
+    def wrapper(*args, **kwargs):
+        t0 = time.time()
+
+        func(*args, **kwargs)
+
+        t1 = time.time()
+        dt = t1 - t0
+        log.info(f'Elapsed time: {dt / 60:.0f}m, {dt:.2f}s')
+
+    return wrapper
 
 
 @profile

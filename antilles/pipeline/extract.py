@@ -9,13 +9,13 @@ class Extractor:
         self.block = self.project.block(block_name)
 
     def adjust(self):
-        positions = self.block.get_coords_slides()
-        angles = self.block.get_angles_coarse()
+        coords = self.block.get(Field.COORDS_SLIDES)
+        angles = self.block.get(Field.ANGLES_COARSE)
 
-        annotate_slides(positions, angles)
+        annotate_slides(coords, angles)
 
-        self.block.save(positions, Field.COORDS_SLIDES)
-        self.block.save(angles, Field.ANGLES_COARSE)
+        # self.block.save(coords, Field.COORDS_SLIDES)
+        # self.block.save(angles, Field.ANGLES_COARSE)
 
     def extract(self, params):
         pass

@@ -26,15 +26,22 @@ class Project:
         project.
         """
         self.log = logging.getLogger(__name__)
-
         self.name = project_name
+        self.check()
 
-        block_names_os = DAO.list_folders(self.relpath)
-        block_names_conf = (b['name'] for b in self.config['blocks'])
+    def check(self):
+        block_names_fs = DAO.list_folders(self.relpath)
+        block_names_json = [b['name'] for b in self.config['blocks']]
+
+        if set(block_names_fs) != set(block_names_json):
+            raise ValueError(
+                'Blocks in file system and project.json do not match!\n'
+                f'File system: {", ".join(block_names_fs)}\n'
+                f'JSON: {", ".join(block_names_json)}')
 
         self.log.info(f"Project {self.name} init")
-        self.log.info("Blocks on file system: " + ", ".join(block_names_os))
-        self.log.info("Blocks in json file: " + ", ".join(block_names_conf))
+        self.log.info("Blocks on file system: " + ", ".join(block_names_fs))
+        self.log.info("Blocks in json file: " + ", ".join(block_names_json))
 
     @property
     def relpath(self):
@@ -60,14 +67,7 @@ class Project:
 
     @property
     def blocks(self):
-        blocks_os = DAO.list_folders(self.relpath)
-        blocks_p = self.config['blocks']
-
-        if set(blocks_os) != set(b['name'] for b in blocks_p):
-            raise ValueError('Blocks in file system and blocks in '
-                             'project.json do not match!')
-
-        return [Block(b, self) for b in blocks_p]
+        return [Block(b, self) for b in self.config['blocks']]
 
     def block(self, name):
         for b in self.blocks:

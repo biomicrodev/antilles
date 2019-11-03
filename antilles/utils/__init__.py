@@ -1,10 +1,10 @@
+import logging
 import time
 from functools import reduce
 
 import pandas
-import wx
 
-from bin.run import log
+log = logging.getLogger(__name__)
 
 
 def flatten(l):
@@ -28,17 +28,3 @@ def upsert(update, using, cols):
     updated.index = range(len(updated))
 
     return updated
-
-
-
-
-def profile(func):
-    def wrapper(*args, **kwargs):
-        t0 = time.time()
-
-        func(*args, **kwargs)
-
-        t1 = time.time()
-        log.info(f'Elapsed time: {t1 - t0:.3f} s')
-
-    return wrapper

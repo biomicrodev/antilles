@@ -9,10 +9,20 @@ from antilles.utils.image import get_slide_dims
 from antilles.utils.io import DAO, get_sample_prefix
 from antilles.utils.math import init_arrow_coords
 
+
+class Field(Enum):
+    ANGLES_COARSE = 'ANGLES_COARSE'
+    COORDS_SLIDES = 'COORDS_SLIDES'
+    COORDS_IMAGES = 'COORDS_IMAGES'
+
+
 columns = ['relpath', 'project', 'block', 'level', 'sample', 'panel',
            'center_x', 'center_y']
 columns_sort_by = ['block', 'level', 'sample', 'panel']
-columns_upsert = ['project', 'block', 'panel', 'level', 'sample']
+columns_upsert = {
+    Field.COORDS_SLIDES: ['project', 'block', 'panel', 'level', 'sample'],
+    Field.ANGLES_COARSE: ['sample']
+}
 
 
 def unpack(block):
@@ -67,10 +77,29 @@ def unpack(block):
     return samples
 
 
-class Field(Enum):
-    ANGLES_COARSE = 'ANGLES_COARSE'
-    COORDS_SLIDES = 'COORDS_SLIDES'
-    COORDS_IMAGES = 'COORDS_IMAGES'
+def init_coords_slides(slides, samples):
+    df = []
+    for slide in slides:
+        dims = get_slide_dims(slide['relpath'])
+        coords = init_arrow_coords(dims, len(samples))
+        for i, sample in enumerate(samples):
+            df.append({**slide, **{
+                'sample': sample['name'],
+                'center_x': coords[i][0],
+                'center_y': coords[i][1]
+            }})
+
+    df = pandas.DataFrame(df, columns=columns) \
+        .sort_values(by=columns_sort_by)
+    df.index = range(len(df))
+    return df
+
+
+def init_angles_coarse(samples):
+    df = [{'sample': s['name'], 'angle': -90} for s in samples]
+    df = pandas.DataFrame(df, columns=['sample', 'angle'])
+    df.index = range(len(df))
+    return df
 
 
 class Block:
@@ -98,9 +127,9 @@ class Block:
         for filename in DAO.list_files(dirpath):
             match = regex.fullmatch(filename)
             if match:
-                d = match.groupdict()
-                d['relpath'] = join(dirpath, filename)
-                slides.append(d)
+                slide = match.groupdict()
+                slide['relpath'] = join(dirpath, filename)
+                slides.append(slide)
         return slides
 
     @property
@@ -117,56 +146,25 @@ class Block:
                 images.append(d)
         return images
 
-    def init_coords_slides(self):
-        df = []
-        for slide in self.slides:
-            dims = get_slide_dims(slide['relpath'])
-            coords = init_arrow_coords(dims, len(self.samples))
-            for i, sample in enumerate(self.samples):
-                df.append({**slide, **{
-                    'sample': sample['name'],
-                    'center_x': coords[i][0],
-                    'center_y': coords[i][1]
-                }})
+    def init(self, field):
+        if field == Field.COORDS_SLIDES:
+            return init_coords_slides(self.slides, self.samples)
+        elif field == Field.ANGLES_COARSE:
+            return init_angles_coarse(self.samples)
+        else:
+            raise ValueError
 
-        df = pandas.DataFrame(df, columns=columns) \
-            .sort_values(by=columns_sort_by)
-        df.index = range(len(df))
-        return df
-
-    def get_coords_slides(self):
-        filename = join('annotations', f'{Field.COORDS_SLIDES.name}.csv')
+    def get(self, field):
+        filename = join('annotations', f'{field.name}.csv')
         filepath = join(self.relpath, filename)
 
-        coords_init = self.init_coords_slides()
+        df_init = self.init(field)
         if DAO.is_file(filepath):
-            coords = DAO.read_csv(filepath)
-            coords = upsert(coords, using=coords_init, cols=columns_upsert)
+            df = DAO.read_csv(filepath)
+            return upsert(df, using=df_init, cols=columns_upsert[field])
 
         else:
-            coords = coords_init
-
-        return coords
-
-    def init_angles_coarse(self):
-        df = [{'sample': s['name'], 'angle': -90} for s in self.samples]
-        df = pandas.DataFrame(df, columns=['sample', 'angle'])
-        df.index = range(len(df))
-        return df
-
-    def get_angles_coarse(self):
-        angles_init = self.init_angles_coarse()
-
-        filename = join('annotations', f'{Field.ANGLES_COARSE.name}.csv')
-        filepath = join(self.relpath, filename)
-        if DAO.is_file(filepath):
-            angles = DAO.read_csv(filepath)
-            angles = upsert(angles, using=angles_init, cols=['sample'])
-
-        else:
-            angles = angles_init
-
-        return angles
+            return df_init
 
     def save(self, df, field, overwrite=True):
         filename = join('annotations', f'{field.name}.csv')
@@ -176,4 +174,4 @@ class Block:
             DAO.make_dir(dirname(filepath))
             DAO.to_csv(df, filepath)
         else:
-            print('Metadata not written.')
+            self.log.info('Metadata not written.')
