@@ -195,16 +195,21 @@ class SlideAnnotationView(wx.Frame):
 
 
 class SlideAnnotationController:
-    def __init__(self, coords, angles):
+    def __init__(self):
+        self.model = None
         self.view = SlideAnnotationView()
         self.view.Show()
 
         # from view to controller
         pub.subscribe(self.update, 'update')
 
-        self.model = SlideAnnotationModel(coords, angles)
+    def set_model(self, model):
+        self.model = model
 
     def render(self):
+        if self.model is None:
+            raise RuntimeError('Must set model!')
+
         slide = self.model.get()
 
         self.view.SetImageTitle(slide['title'])
@@ -228,7 +233,10 @@ class SlideAnnotationController:
 
 
 def annotate_slides(*args, **kwargs):
+    model = SlideAnnotationModel(*args, **kwargs)
+
     app = wx.App()
-    controller = SlideAnnotationController(*args, **kwargs)
+    controller = SlideAnnotationController()
+    controller.set_model(model)
     controller.render()
     app.MainLoop()
