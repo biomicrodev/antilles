@@ -104,6 +104,14 @@ def init_angles_coarse(samples):
 
 class Block:
     def __init__(self, block, project):
+        """
+        A Block is a directory initially containing three subdirectories:
+          1. 'annotations', containing csv files of where regions are
+          2. '0_slides', containing slides.
+          3. '0_images', containing images.
+
+        This class manages access to the three items above.
+        """
         self.log = logging.getLogger(__name__)
 
         self.name = block['name']
@@ -141,9 +149,9 @@ class Block:
         for filename in DAO.list_files(dirpath):
             match = regex.fullmatch(filename)
             if match:
-                d = match.groupdict()
-                d['relpath'] = join(dirpath, filename)
-                images.append(d)
+                image = match.groupdict()
+                image['relpath'] = join(dirpath, filename)
+                images.append(image)
         return images
 
     def init(self, field):
