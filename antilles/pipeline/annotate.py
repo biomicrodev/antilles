@@ -13,6 +13,7 @@ import os
 import wx
 from pubsub import pub
 
+from antilles.gui.interactors import device2interactor
 from antilles.gui.panels import ButtonPanel, ImageAnnotationPanel
 from antilles.utils.image import get_thumbnail
 from antilles.utils.math import pol2cart, cart2pol
@@ -24,25 +25,26 @@ def add_dxy(x, y, l, a):
     return x + dx, y + dy
 
 
-def get_annotations(coords, angles):
-    length = 1000  # pixels
+def get_interactors(coords, angles):
+    device = 'ARROW'  # simplest indicator of direction
+    assert (device in device2interactor.keys())
 
-    annotations = []
+    interactors = []
     for i, (sample, c_x, c_y) in coords.iterrows():
         angle = next(a['angle'] for a in angles if a['sample'] == sample)
-        w_x, w_y = add_dxy(c_x, c_y, length, angle)
 
-        annotations.append({
+        interactors.append({
             'id': sample,
             'label': sample,
             'cxy': (c_x, c_y),
-            'wxy': (w_x, w_y)
+            'angle': angle,
+            'device': device
         })
 
-    return annotations
+    return interactors
 
 
-class SlideAnnotationModel:
+class SlideArrowAnnotationModel:
     def __init__(self, coords, angles):
         self.coords = coords
         self.angles = angles
@@ -58,31 +60,28 @@ class SlideAnnotationModel:
 
         title = f'Slide {self._ind + 1}/{len(self.relpaths)}: ' \
                 f'{os.path.basename(relpath)}'
-        annotations = get_annotations(coords, angles)
-        thumbnail = get_thumbnail(relpath)
+        interactors = get_interactors(coords, angles)
 
         return {
             'id': relpath,
+            'relpath': relpath,
             'title': title,
-            'annotations': annotations,
-            'factor': thumbnail['factor'],
-            'image': thumbnail['image']
+            'interactors': interactors
         }
 
     def update(self, slide):
         relpath = slide['id']
-        annotations = slide['annotations']
+        interactors = slide['interactors']
 
-        for annotation in annotations:
-            sample = annotation['id']
-            c_x, c_y = annotations['cxy']
-            w_x, w_y = annotations['wxy']
-            _, angle = cart2pol(w_x - c_x, w_y - c_y)
+        for interactor in interactors:
+            sample = interactor['id']
+            cx, cy = interactor['cxy']
+            angle = interactor['angle']
 
-            ind_c = self.coords['relpath'] == relpath and \
-                    self.coords['sample'] == sample
-            self.coords.loc[ind_c, ['center_x']] = c_x
-            self.coords.loc[ind_c, ['center_y']] = c_y
+            ind_c = (self.coords['relpath'] == relpath) & \
+                    (self.coords['sample'] == sample)
+            self.coords.loc[ind_c, ['center_x']] = cx
+            self.coords.loc[ind_c, ['center_y']] = cy
 
             ind_s = self.angles['sample'] == sample
             self.angles.loc[ind_s, ['angle']] = angle
@@ -102,18 +101,16 @@ class SlideAnnotationModel:
         return self._ind >= len(self.relpaths) - 1
 
 
-class SlideAnnotationView(wx.Frame):
+class SlideArrowAnnotationView(wx.Frame):
     def __init__(self):
         title = 'Slide Annotation'
         frame_style = wx.MAXIMIZE_BOX | wx.MINIMIZE_BOX | wx.RESIZE_BORDER | \
                       wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX | \
                       wx.CLIP_CHILDREN
-        frame_size = 1400, 900  # width, height
+        frame_size = 1500, 900  # width, height
 
         super().__init__(parent=None, title=title, style=frame_style,
                          size=frame_size)
-
-        self.SetMinSize(frame_size)
 
         self.imageAnnotationP = ImageAnnotationPanel(self)
         self.buttonP = ButtonPanel(self)
@@ -159,10 +156,8 @@ class SlideAnnotationView(wx.Frame):
         self.OnSave(event, do_after='next')
 
     def OnSave(self, event, do_after=None):
-        # slide = self.imageAnnotationP.interactorsP.GetInteractorsParams()
-        slide = None
-        # TODO: merge with slide
-        pub.sendMessage('update', slide=slide, do_after=do_after)
+        interactors = self.imageAnnotationP.interactorsP.GetInteractors()
+        pub.sendMessage('update', interactors=interactors, do_after=do_after)
 
     def OnDone(self, event):
         self.OnSave(event)
@@ -194,49 +189,109 @@ class SlideAnnotationView(wx.Frame):
         self.imageAnnotationP.interactorsP.canvas.draw()
 
 
-class SlideAnnotationController:
-    def __init__(self):
-        self.model = None
-        self.view = SlideAnnotationView()
+class SlideArrowAnnotationPresenter:
+    def __init__(self, model, view):
+        self.model = model
+        self.view = view
         self.view.Show()
 
-        # from view to controller
-        pub.subscribe(self.update, 'update')
+        # TODO: should this actually be a viewmodel?
+        self.id = None
+        self.factor = None
 
-    def set_model(self, model):
-        self.model = model
+        # from view to controller
+        pub.subscribe(self.on_changed, 'update')
+
+    @staticmethod
+    def angles_to_coords(interactors):
+        length = 100  # pixels
+
+        for interactor in interactors:
+            angle = interactor.pop('angle')
+            cx, cy = interactor['cxy']
+            dx, dy = pol2cart(length, angle)
+            interactor['wxy'] = cx + dx, cy + dy
+        return interactors
+
+    @staticmethod
+    def coords_to_angle(interactors):
+        for interactor in interactors:
+            cx, cy = interactor['cxy']
+            wx, wy = interactor.pop('wxy')
+
+            _, angle = cart2pol(wx - cx, wy - cy)
+            interactor['angle'] = angle
+        return interactors
+
+    def scale_down(self, interactors):
+        for interactor in interactors:
+            cx, cy = interactor['cxy']
+            cx, cy = cx / self.factor, cy / self.factor
+            cx, cy = int(round(cx)), int(round(cy))
+            interactor['cxy'] = cx, cy
+        return interactors
+
+    def scale_up(self, interactors):
+        for interactor in interactors:
+            cx, cy = interactor['cxy']
+            cx, cy = cx * self.factor, cy * self.factor
+            cx, cy = int(round(cx)), int(round(cy))
+            interactor['cxy'] = cx, cy
+        return interactors
 
     def render(self):
         if self.model is None:
             raise RuntimeError('Must set model!')
 
         slide = self.model.get()
+        self.id = slide['id']
+        thumbnail = get_thumbnail(slide['relpath'])
+        self.factor = thumbnail['factor']
 
+        interactors = slide['interactors']
+        interactors = [{
+            'id': a['id'],
+            'label': a['label'],
+            'cxy': a['cxy'],
+            'angle': a['angle'],
+            'artist': device2interactor[a['device']]
+        } for a in interactors]
+        interactors = self.scale_down(interactors)
+        interactors = self.angles_to_coords(interactors)
+
+        self.view.SetInteractors(interactors)
         self.view.SetImageTitle(slide['title'])
-        self.view.SetImage(slide['image'])
+        self.view.SetImage(thumbnail['image'])
 
         self.view.UpdateSequenceButtons(prev=not self.model.is_first(),
                                         next=not self.model.is_last())
         self.view.Draw()
 
-    def update(self, slide, do_after=None):
-        # self.model.update(slide)
+    def on_changed(self, interactors, do_after=None):
+        interactors = self.coords_to_angle(interactors)
+        interactors = self.scale_up(interactors)
+
+        slide = {
+            'id': self.id,
+            'interactors': interactors
+        }
+
+        self.model.update(slide)
 
         if do_after == 'prev':
             self.model.prev()
+            self.render()
         elif do_after == 'next':
             self.model.next()
-
-        # TODO: find better name for this function, it does two things here
-        if do_after is not None:
             self.render()
 
 
 def annotate_slides(*args, **kwargs):
-    model = SlideAnnotationModel(*args, **kwargs)
+    model = SlideArrowAnnotationModel(*args, **kwargs)
 
     app = wx.App()
-    controller = SlideAnnotationController()
-    controller.set_model(model)
-    controller.render()
+    view = SlideArrowAnnotationView()
+    presenter = SlideArrowAnnotationPresenter(model=model, view=view)
+    presenter.render()
+
     app.MainLoop()

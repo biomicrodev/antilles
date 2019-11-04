@@ -133,10 +133,20 @@ class DevicesInteractorsPanel(BaseInteractorsPanel):
         super().__init__(parent=parent)
 
     def SetInteractors(self, interactors):
-        pass
+        self.interactors = []
+        for interactor in interactors:
+            args = {
+                'axes': self.axes,
+                'id': interactor['id'],
+                'label': interactor['label'],
+                'cxy': interactor['cxy'],
+                'wxy': interactor['wxy']
+            }
+            artist = interactor['artist'](**args)
+            self.interactors.append(artist)
 
     def GetInteractors(self):
-        pass
+        return [a.get_params() for a in self.interactors]
 
     def OnMouseMoved(self, event):
         if event.button != 1:

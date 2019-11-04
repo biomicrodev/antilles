@@ -14,8 +14,8 @@ class Extractor:
 
         annotate_slides(coords, angles)
 
-        # self.block.save(coords, Field.COORDS_SLIDES)
-        # self.block.save(angles, Field.ANGLES_COARSE)
+        self.block.save(coords, Field.COORDS_SLIDES)
+        self.block.save(angles, Field.ANGLES_COARSE)
 
     def extract(self, params):
         pass

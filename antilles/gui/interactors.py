@@ -73,14 +73,14 @@ class BaseInteractor:
         raise NotImplemented
 
 
-class RocketDeviceInteractor(BaseInteractor):
-    def __init__(self, axes, **kwargs):
+class ArrowInteractor(BaseInteractor):
+    def __init__(self, *args, **kwargs):
         self.id = kwargs.get('id')
         self.label = kwargs.get('label')
         self.cxy = kwargs.get('cxy')
         self.wxy = kwargs.get('wxy')
 
-        super().__init__(axes, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self._ind = None
         self._ind_last = None
@@ -89,25 +89,219 @@ class RocketDeviceInteractor(BaseInteractor):
         self.init_label()
 
     def init_artists(self):
-        main_arrow_props = {'alpha': 0.5 if not self.active else 0.2,
+        main_arrow_props = {'alpha': 0.5 if self.active else 0.2,
                             'animated': True,
                             'arrowstyle': '->,head_length=10,head_width=7',
                             'color': self.color,
                             'linestyle': 'solid'}
 
-        opp_arrow_props = {'alpha': 0.3 if not self.active else 0.1,
+        line_props = {'alpha': 0.7 if self.active else 0.3,
+                      'animated': True,
+                      'color': self.color,
+                      'linestyle': '',
+                      'marker': 'x',
+                      'markerfacecolor': self.color,
+                      'markersize': 8,
+                      'markevery': [0]}
+
+        cx, cy = self.cxy
+        wx, wy = self.wxy
+        dx, dy = wx - cx, wy - cy
+
+        # main arrow
+        main_arrow = FancyArrowPatch(posA=self.cxy,
+                                     posB=self.wxy,
+                                     **main_arrow_props)
+        self.artists['main_arrow'] = main_arrow
+        self.axes.add_patch(main_arrow)
+
+        # line
+        line, = self.axes.plot([cx, cx + dx],
+                               [cy, cy + dy],
+                               **line_props)
+        self.artists['line'] = line
+        self.axes.add_line(line)
+
+    def init_label(self):
+        label_props = {'alpha': 0.7 if self.active else 0.2,
+                       'animated': True,
+                       'family': 'sans-serif',
+                       'horizontalalignment': 'center',
+                       'size': 10,
+                       'color': self.color,
+                       'verticalalignment': 'center'}
+
+        x, y = self._calc_label_pos()
+        label = self.axes.text(x, y, self.label, **label_props)
+        self.artists['label'] = label
+
+    # === COMPUTED =========================================================== #
+
+    @property
+    def angle(self):
+        dx = self.wxy[0] - self.cxy[0]
+        dy = self.wxy[1] - self.cxy[1]
+        _, angle = cart2pol(dx, dy)
+        return angle
+
+    def _calc_label_pos(self):
+        offset = 60  # pixels
+        angle = self.angle + 90
+
+        cx, cy = self.cxy
+        dx, dy = pol2cart(offset, angle)
+        x, y = cx + dx, cy + dy
+        return x, y
+
+    def _calc_right_delta(self):
+        right_offset = 40
+        angle = self.angle + 90
+        rx, ry = pol2cart(right_offset, angle)
+        return rx, ry
+
+    # === EXPORT ============================================================= #
+
+    def get_params(self):
+        return {'id': self.id,
+                'cxy': self.cxy,
+                'wxy': self.wxy}
+
+    # === INTERACTION ======================================================== #
+
+    def get_ind_under_point(self, event):
+        line = self.artists['line']
+
+        xy = numpy.asarray(line.get_xydata())
+        xyt = line.get_transform().transform(xy)
+        xt, yt = xyt[:, 0], xyt[:, 1]
+
+        d = numpy.hypot(xt - event.x, yt - event.y)
+        ind_seq = numpy.nonzero(numpy.equal(d, numpy.amin(d)))[0]
+        ind = ind_seq[0]
+
+        if d[ind] >= epsilon:
+            ind = None
+
+        return ind
+
+    def button_press_callback(self, event):
+        if event.inaxes is None:
+            return
+        if event.button != 1:
+            return
+
+        self._ind = self.get_ind_under_point(event)
+        self._ind_last = self._ind
+
+    def button_release_callback(self, event):
+        if event.button != 1:
+            return
+
+        self._ind = None
+
+    def update_all(self):
+        cx, cy = self.cxy
+        wx, wy = self.wxy
+        dx, dy = wx - cx, wy - cy
+        lxy = self._calc_label_pos()
+
+        self.artists['main_arrow'].set_positions(self.cxy, self.wxy)
+        self.artists['line'].set_data([cx, cx + dx],
+                                      [cy, cy + dy])
+        self.artists['label'].set_position(lxy)
+
+    def motion_notify_callback(self, event):
+        if self._ind is None:
+            return
+        if event.inaxes is None:
+            return
+        if event.button != 1:
+            return
+
+        x, y = int(round(event.xdata)), \
+               int(round(event.ydata))
+        if self._ind == 1:
+            self._set_arrow_head(x, y)
+            self.update_all()
+
+        elif self._ind == 0:
+            self._set_arrow_tail(x, y)
+            self.update_all()
+
+    def key_press_event(self, event):
+        if self._ind_last is None:
+            return
+        if event.inaxes is None:
+            return
+
+        key = event.key
+        if self._ind_last == 1:
+            # arrow head moved
+            wx, wy = self.wxy
+            wx, wy = move(key, wx, wy)
+            self._set_arrow_head(wx, wy)
+            self.update_all()
+
+        elif self._ind_last == 0:
+            cx, cy = self.cxy
+            cx, cy = move(key, cx, cy)
+            self._set_arrow_tail(cx, cy)
+            self.update_all()
+
+    def key_release_event(self, event):
+        if self._ind_last is None:
+            return
+        if event.inaxes is None:
+            return
+
+    # === ATOMIC INTERACTION ================================================= #
+    def _set_arrow_head(self, x, y):
+        self.wxy = x, y
+
+    def _set_arrow_tail(self, x, y):
+        cx, cy = self.cxy
+        self.cxy = x, y
+
+        # move arrow head along with tail
+        wx, wy = self.wxy
+        self.wxy = wx - cx + x, wy - cy + y
+
+
+class RocketDeviceInteractor(BaseInteractor):
+    def __init__(self, *args, **kwargs):
+        self.id = kwargs.get('id')
+        self.label = kwargs.get('label')
+        self.cxy = kwargs.get('cxy')
+        self.wxy = kwargs.get('wxy')
+
+        super().__init__(*args, **kwargs)
+
+        self._ind = None
+        self._ind_last = None
+
+        self.init_artists()
+        self.init_label()
+
+    def init_artists(self):
+        main_arrow_props = {'alpha': 0.5 if self.active else 0.2,
+                            'animated': True,
+                            'arrowstyle': '->,head_length=10,head_width=7',
+                            'color': self.color,
+                            'linestyle': 'solid'}
+
+        opp_arrow_props = {'alpha': 0.3 if self.active else 0.1,
                            'animated': True,
                            'arrowstyle': '->,head_length=10,head_width=7',
                            'color': self.color,
                            'linestyle': 'dashed'}
 
-        right_props = {'alpha': 0.2 if not self.active else 0.1,
+        right_props = {'alpha': 0.2 if self.active else 0.1,
                        'animated': True,
                        'color': self.color,
                        'linestyle': 'dashed',
                        'linewidth': 1}
 
-        line_props = {'alpha': 0.7 if not self.active else 0.3,
+        line_props = {'alpha': 0.7 if self.active else 0.3,
                       'animated': True,
                       'color': self.color,
                       'linestyle': '',
@@ -308,13 +502,13 @@ class RocketDeviceInteractor(BaseInteractor):
 
 
 class BrainDeviceInteractor(BaseInteractor):
-    def __init__(self, axes, **kwargs):
+    def __init__(self, *args, **kwargs):
         self.id = kwargs.get('id')
         self.label = kwargs.get('label')
         self.cxy = kwargs.get('cxy')
         self.wxy = kwargs.get('wxy')
 
-        super().__init__(axes, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self._ind = None
         self._ind_last = None
@@ -516,7 +710,8 @@ class BrainDeviceInteractor(BaseInteractor):
             return
 
 
-models2interactors = {
+device2interactor = {
+    'ARROW': ArrowInteractor,
     'ROCKET': RocketDeviceInteractor,
     'BRAIN': BrainDeviceInteractor,
 }
