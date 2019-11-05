@@ -14,6 +14,7 @@ class Field(Enum):
     ANGLES_COARSE = 'ANGLES_COARSE'
     COORDS_SLIDES = 'COORDS_SLIDES'
     COORDS_IMAGES = 'COORDS_IMAGES'
+    COORDS_BOW = 'COORDS_BOW'
 
 
 columns = ['relpath', 'project', 'block', 'level', 'sample', 'panel',
@@ -89,8 +90,8 @@ def init_coords_slides(slides, samples):
                 'center_y': coords[i][1]
             }})
 
-    df = pandas.DataFrame(df, columns=columns) \
-        .sort_values(by=columns_sort_by)
+    df = pandas.DataFrame(df, columns=columns)
+    df = df.sort_values(by=columns_sort_by)
     df.index = range(len(df))
     return df
 
@@ -137,6 +138,8 @@ class Block:
             if match:
                 slide = match.groupdict()
                 slide['relpath'] = join(dirpath, filename)
+                if 'level' in slide.keys():
+                    slide['level'] = int(slide['level'])
                 slides.append(slide)
         return slides
 
@@ -169,7 +172,7 @@ class Block:
         df_init = self.init(field)
         if DAO.is_file(filepath):
             df = DAO.read_csv(filepath)
-            return upsert(df, using=df_init, cols=columns_upsert[field])
+            return upsert(df_init, using=df, cols=columns_upsert[field])
 
         else:
             return df_init

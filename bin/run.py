@@ -1,26 +1,13 @@
 import logging.config
-import time
 
 from antilles.pipeline.extract import Extractor
+from antilles.utils import profile
 
 logging.config.fileConfig('../logging.ini')
 log = logging.getLogger(__name__)
 
 
-def profile(func):
-    def wrapper(*args, **kwargs):
-        t0 = time.time()
-
-        func(*args, **kwargs)
-
-        t1 = time.time()
-        dt = t1 - t0
-        log.info(f'Elapsed time: {dt / 60:.0f}m, {dt:.2f}s')
-
-    return wrapper
-
-
-@profile
+@profile(log=log)
 def main():
     project_name = 'TEST'
     block_name = 'BLK1'
@@ -29,12 +16,18 @@ def main():
 
     # === COARSE ADJUST & EXTRACT ============================================ #
     if step == 0:
-        pass
+        params = {
+            'wedge': {
+                'span': 90.0,  # degrees
+                'thickness': 400  # microns
+            }
+        }
+
         # These parameters are not for analysis; these values are used to
         # compute a reasonable buffer around the region of interest.
         extractor = Extractor(project_name, block_name)
         extractor.adjust()
-        # extractor.run(repick=True, extract=False, params=params)
+        extractor.extract(params)
 
     # === FINE ADJUST ======================================================== #
     elif step == 1:

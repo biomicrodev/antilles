@@ -56,7 +56,7 @@ class DAO:
 
     @staticmethod
     def is_file(path):
-        return os.path.isfile(path)
+        return os.path.isfile(DAO.abs(path))
 
     @staticmethod
     def make_dir(path):
