@@ -17,12 +17,18 @@ class Field(Enum):
     COORDS_BOW = 'COORDS_BOW'
 
 
+class Step(Enum):
+    S1 = "1_regions"
+    S2 = "2_regions_{mode}"
+
+
 columns = ['relpath', 'project', 'block', 'level', 'sample', 'panel',
            'center_x', 'center_y']
 columns_sort_by = ['block', 'level', 'sample', 'panel']
 columns_upsert = {
     Field.COORDS_SLIDES: ['project', 'block', 'panel', 'level', 'sample'],
-    Field.ANGLES_COARSE: ['sample']
+    Field.ANGLES_COARSE: ['sample'],
+    Field.COORDS_BOW: []
 }
 
 
@@ -103,6 +109,17 @@ def init_angles_coarse(samples):
     return df
 
 
+def get_step_dir(step, **kwargs):
+    assert (step.name in Step.__members__.keys())
+    if step == Step.S1:
+        s = Step.S1.value
+    elif step == Step.S2:
+        s = Step.S2.value.format(**kwargs)
+    else:
+        raise NotImplementedError('Unsupported step!')
+    return s
+
+
 class Block:
     def __init__(self, block, project):
         """
@@ -163,22 +180,39 @@ class Block:
         elif field == Field.ANGLES_COARSE:
             return init_angles_coarse(self.samples)
         else:
-            raise ValueError
+            return pandas.DataFrame()
 
     def get(self, field):
-        filename = join('annotations', f'{field.name}.csv')
+        filename = join('annotations', f'{field.value}.csv')
         filepath = join(self.relpath, filename)
 
-        df_init = self.init(field)
-        if DAO.is_file(filepath):
+        if field == Field.COORDS_SLIDES:
+            df_init = init_coords_slides(self.slides, self.samples)
+            if DAO.is_file(filepath):
+                df = DAO.read_csv(filepath)
+                df = upsert(df_init, using=df, cols=columns_upsert[field])
+                return df
+            else:
+                return df_init
+
+        elif field == Field.ANGLES_COARSE:
+            df_init = init_angles_coarse(self.samples)
+            if DAO.is_file(filepath):
+                df = DAO.read_csv(filepath)
+                df = upsert(df_init, using=df, cols=columns_upsert[field])
+                return df
+            else:
+                return df_init
+
+        elif field == Field.COORDS_BOW:
             df = DAO.read_csv(filepath)
-            return upsert(df_init, using=df, cols=columns_upsert[field])
+            return df
 
         else:
-            return df_init
+            raise RuntimeError(f'Unknown field {field.name}!')
 
     def save(self, df, field, overwrite=True):
-        filename = join('annotations', f'{field.name}.csv')
+        filename = join('annotations', f'{field.value}.csv')
         filepath = join(self.relpath, filename)
 
         if not DAO.is_file(filepath) or overwrite:
@@ -186,3 +220,6 @@ class Block:
             DAO.to_csv(df, filepath)
         else:
             self.log.info('Metadata not written.')
+
+    def clean(self):
+        DAO.rm_dir(join(self.relpath, Step.S1.value))

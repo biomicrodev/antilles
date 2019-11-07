@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 
 import pandas
 
@@ -61,3 +62,10 @@ class DAO:
     @staticmethod
     def make_dir(path):
         os.makedirs(DAO.abs(path), exist_ok=True)
+
+    @staticmethod
+    def rm_dir(path):
+        try:
+            shutil.rmtree(DAO.abs(path))
+        except FileNotFoundError:
+            pass

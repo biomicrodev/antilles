@@ -23,7 +23,7 @@ def get_slide_dims(path):
         return obj.dimensions
 
 
-def openslide_mpp(obj):
+def get_mpp_from_openslide(obj):
     mpp_x = float(obj.properties[openslide.PROPERTY_NAME_MPP_X])
     mpp_y = float(obj.properties[openslide.PROPERTY_NAME_MPP_Y])
 

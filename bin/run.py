@@ -19,14 +19,15 @@ def main():
         params = {
             'wedge': {
                 'span': 90.0,  # degrees
-                'thickness': 400  # microns
+                'radius_inner': 400,  # microns
+                'radius_outer': 1200  # microns
             }
         }
 
         # These parameters are not for analysis; these values are used to
         # compute a reasonable buffer around the region of interest.
         extractor = Extractor(project_name, block_name)
-        extractor.adjust()
+        # extractor.adjust()
         extractor.extract(params)
 
     # === FINE ADJUST ======================================================== #

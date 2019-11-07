@@ -220,7 +220,7 @@ class SlideArrowAnnotationPresenter:
             wx, wy = interactor.pop('wxy')
 
             _, angle = cart2pol(wx - cx, wy - cy)
-            interactor['angle'] = angle
+            interactor['angle'] = round(angle, 1)
         return interactors
 
     def scale_down(self, interactors):
