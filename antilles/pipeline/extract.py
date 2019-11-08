@@ -10,6 +10,7 @@ import pandas
 from antilles.block import Field, Step
 from antilles.pipeline.annotate import annotate_slides
 from antilles.project import Project
+from antilles.utils import upsert
 from antilles.utils.image import get_mpp_from_openslide
 from antilles.utils.io import DAO
 from antilles.utils.math import pol2cart
@@ -155,16 +156,24 @@ def extract_image(src, dst, params):
 
 def upsert_translate(df, using):
     cols = ['project', 'block', 'panel', 'level', 'sample', 'drug']
+
+    df_old = df.copy()
+    df = upsert(df, using, cols)
+
     for i, row in df.iterrows():
-        ind = (row[col] == using[col] for col in cols)
+        ind = (row[col] == df_old[col] for col in cols)
         ind = reduce((lambda x, y: x & y), ind)
-        row_old = using[ind]
+        df_row = df[ind]
 
-        if len(row_old) == 1:
-            pass
+        if len(df_row) == 1:
+            diff_x = int(df.loc[i, ['origin_x']]) - int(df_row['origin_x'])
+            diff_y = int(df.loc[i, ['origin_y']]) - int(df_row['origin_y'])
+            df.loc[i, ['center_x']] = int(df_row['center_x']) - diff_x
+            df.loc[i, ['center_y']] = int(df_row['center_y']) - diff_y
+            df.loc[i, ['well_x']] = int(df_row['well_x']) - diff_x
+            df.loc[i, ['well_y']] = int(df_row['well_y']) - diff_y
 
-        else:
-            pass
+    return df
 
 
 class Extractor:
@@ -190,12 +199,11 @@ class Extractor:
     def extract_wedges(self, params):
         self.block.clean()
 
-        regions_prev = self.block.get(Field.COORDS_BOW)
-        # regions = self._extract_wedges(params)
-        regions = pandas.read_csv('test.csv')
-        regions = upsert_translate(regions, using=regions_prev)
+        # regions_prev = self.block.get(Field.COORDS_BOW)
+        regions = self._extract_wedges(params)
+        # regions = upsert_translate(regions, using=regions_prev)
 
-        # self.block.save(regions, Field.COORDS_BOW)
+        self.block.save(regions, Field.COORDS_BOW)
 
     def _extract_wedges(self, params):
         output_order = self.project.config['output_order']
