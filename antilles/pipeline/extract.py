@@ -188,8 +188,8 @@ class Extractor:
 
         annotate_slides(coords, angles)
 
-        self.block.save(coords, Field.COORDS_SLIDES)
-        self.block.save(angles, Field.ANGLES_COARSE)
+        # self.block.save(coords, Field.COORDS_SLIDES)
+        # self.block.save(angles, Field.ANGLES_COARSE)
 
     def extract(self, params):
         self.log.info('Extracting wedges ... ')
@@ -235,8 +235,8 @@ class Extractor:
                 'metadata': json.dumps({})
             }})
 
-        columns = ['project', 'block', 'panel', 'level', 'sample', 'drug',
-                   'relpath', 'origin_x', 'origin_y', 'center_x', 'center_y',
+        columns = ['relpath', 'project', 'block', 'panel', 'level', 'sample',
+                   'drug', 'origin_x', 'origin_y', 'center_x', 'center_y',
                    'well_x', 'well_y', 'metadata']
         regions = pandas.DataFrame(regions, columns=columns)
         return regions

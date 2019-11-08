@@ -1,5 +1,6 @@
 import logging.config
 
+from antilles.pipeline.adjust import Adjuster
 from antilles.pipeline.extract import Extractor
 from antilles.utils import profile
 
@@ -27,12 +28,13 @@ def main():
         # These parameters are not for analysis; these values are used to
         # compute a reasonable buffer around the region of interest.
         extractor = Extractor(project_name, block_name)
-        # extractor.adjust()
-        extractor.extract(params)
+        extractor.adjust()
+        # extractor.extract(params)
 
     # === FINE ADJUST ======================================================== #
     elif step == 1:
-        pass
+        adjuster = Adjuster(project_name, block_name)
+        adjuster.run()
 
     # === ANALYZE ============================================================ #
     elif step == 2:

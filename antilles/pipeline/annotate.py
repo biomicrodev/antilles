@@ -50,15 +50,13 @@ class SlideArrowAnnotationModel:
         self.angles = angles
         self.relpaths = sorted(list(set(self.coords['relpath'].unique())))
 
-        self._ind = 0
-
-    def get(self):
-        relpath = self.relpaths[self._ind]
+    def get(self, index):
+        relpath = self.relpaths[index]
         inds = self.coords['relpath'] == relpath
         coords = self.coords.loc[inds, ['sample', 'center_x', 'center_y']]
         angles = self.angles.to_dict('records')
 
-        title = f'Slide {self._ind + 1}/{len(self.relpaths)}: ' \
+        title = f'Slide {index + 1}/{len(self.relpaths)}: ' \
                 f'{os.path.basename(relpath)}'
         interactors = get_interactors(coords, angles)
 
@@ -69,7 +67,7 @@ class SlideArrowAnnotationModel:
             'interactors': interactors
         }
 
-    def update(self, slide):
+    def set(self, slide):
         relpath = slide['id']
         interactors = slide['interactors']
 
@@ -86,19 +84,9 @@ class SlideArrowAnnotationModel:
             ind_s = self.angles['sample'] == sample
             self.angles.loc[ind_s, ['angle']] = angle
 
-    def prev(self):
-        if not self.is_first():
-            self._ind -= 1
-
-    def next(self):
-        if not self.is_last():
-            self._ind += 1
-
-    def is_first(self):
-        return self._ind <= 0
-
-    def is_last(self):
-        return self._ind >= len(self.relpaths) - 1
+    @property
+    def n_slides(self):
+        return len(self.relpaths)
 
 
 class SlideArrowAnnotationView(wx.Frame):
@@ -163,16 +151,16 @@ class SlideArrowAnnotationView(wx.Frame):
         self.OnSave(event)
         self.Close()
 
-    def UpdateSequenceButtons(self, prev, next):
-        if prev:
-            self.buttonP.prevBtn.Enable()
-        else:
+    def UpdateSequenceButtons(self, first, last):
+        if first:
             self.buttonP.prevBtn.Disable()
-
-        if next:
-            self.buttonP.nextBtn.Enable()
         else:
+            self.buttonP.prevBtn.Enable()
+
+        if last:
             self.buttonP.nextBtn.Disable()
+        else:
+            self.buttonP.nextBtn.Enable()
 
     # === GUI ACTIONS ======================================================== #
 
@@ -193,14 +181,13 @@ class SlideArrowAnnotationPresenter:
     def __init__(self, model, view):
         self.model = model
         self.view = view
-        self.view.Show()
+        self.state = {'ind': 0,
+                      'id': None,
+                      'factor': None}
 
-        # TODO: should this actually be a viewmodel?
-        self.id = None
-        self.factor = None
-
-        # from view to controller
         pub.subscribe(self.on_changed, 'update')
+
+        self.view.Show()
 
     @staticmethod
     def angles_to_coords(interactors):
@@ -209,6 +196,7 @@ class SlideArrowAnnotationPresenter:
         for interactor in interactors:
             angle = interactor.pop('angle')
             cx, cy = interactor['cxy']
+
             dx, dy = pol2cart(length, angle)
             interactor['wxy'] = cx + dx, cy + dy
         return interactors
@@ -223,30 +211,27 @@ class SlideArrowAnnotationPresenter:
             interactor['angle'] = round(angle, 1)
         return interactors
 
-    def scale_down(self, interactors):
+    @staticmethod
+    def scale(interactors, factor):
         for interactor in interactors:
             cx, cy = interactor['cxy']
-            cx, cy = cx / self.factor, cy / self.factor
+            cx, cy = cx * factor, cy * factor
             cx, cy = int(round(cx)), int(round(cy))
             interactor['cxy'] = cx, cy
         return interactors
 
-    def scale_up(self, interactors):
-        for interactor in interactors:
-            cx, cy = interactor['cxy']
-            cx, cy = cx * self.factor, cy * self.factor
-            cx, cy = int(round(cx)), int(round(cy))
-            interactor['cxy'] = cx, cy
-        return interactors
+    def is_first(self):
+        return self.state['ind'] == 0
+
+    def is_last(self):
+        return self.state['ind'] == (self.model.n_slides - 1)
 
     def render(self):
-        if self.model is None:
-            raise RuntimeError('Must set model!')
-
-        slide = self.model.get()
-        self.id = slide['id']
+        ind = self.state['ind']
+        slide = self.model.get(ind)
         thumbnail = get_thumbnail(slide['relpath'])
-        self.factor = thumbnail['factor']
+        self.state['id'] = slide['relpath']
+        self.state['factor'] = thumbnail['factor']
 
         interactors = slide['interactors']
         interactors = [{
@@ -256,33 +241,31 @@ class SlideArrowAnnotationPresenter:
             'angle': a['angle'],
             'artist': device2interactor[a['device']]
         } for a in interactors]
-        interactors = self.scale_down(interactors)
+        interactors = self.scale(interactors, 1 / self.state['factor'])
         interactors = self.angles_to_coords(interactors)
 
         self.view.SetInteractors(interactors)
         self.view.SetImageTitle(slide['title'])
         self.view.SetImage(thumbnail['image'])
 
-        self.view.UpdateSequenceButtons(prev=not self.model.is_first(),
-                                        next=not self.model.is_last())
+        self.view.UpdateSequenceButtons(first=self.is_first(),
+                                        last=self.is_last())
         self.view.Draw()
 
     def on_changed(self, interactors, do_after=None):
         interactors = self.coords_to_angle(interactors)
-        interactors = self.scale_up(interactors)
-
+        interactors = self.scale(interactors, self.state['factor'])
         slide = {
-            'id': self.id,
+            'id': self.state['id'],
             'interactors': interactors
         }
+        self.model.set(slide)
 
-        self.model.update(slide)
-
-        if do_after == 'prev':
-            self.model.prev()
+        if do_after == 'prev' and not self.is_first():
+            self.state['ind'] -= 1
             self.render()
-        elif do_after == 'next':
-            self.model.next()
+        elif do_after == 'next' and not self.is_last():
+            self.state['ind'] += 1
             self.render()
 
 
