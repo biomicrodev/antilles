@@ -31,8 +31,9 @@ def get_mpp_from_openslide(obj) -> float:
 
     if not numpy.equal(mpp_x, mpp_y):
         warnings.warn(
-            'MPP values are not equal in x and y directions! '
-            'x: {x}, y: {y}'.format(x=mpp_x, y=mpp_y))
+            "MPP values are not equal in x and y directions! "
+            "x: {x}, y: {y}".format(x=mpp_x, y=mpp_y)
+        )
         mpp = numpy.average((mpp_x, mpp_y))
 
     else:
@@ -46,8 +47,9 @@ def calc_downsample_factor(dims: Tuple[int, int]) -> float:
     screen_size_eff = [s * 0.75 for s in screen_size]
 
     w, h = dims
-    return max(float(w) / float(screen_size_eff[0]),
-               float(h) / float(screen_size_eff[1]))
+    return max(
+        float(w) / float(screen_size_eff[0]), float(h) / float(screen_size_eff[1])
+    )
 
 
 def get_thumbnail(path: str) -> dict:
@@ -67,5 +69,4 @@ def get_thumbnail(path: str) -> dict:
             dims_tn = tuple(int(round(float(s) / factor)) for s in dims)
             image = obj.resize(dims_tn, Image.LANCZOS)
 
-    return {'factor': factor,
-            'image': image}
+    return {"factor": factor, "image": image}

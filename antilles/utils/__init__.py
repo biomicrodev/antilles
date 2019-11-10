@@ -9,7 +9,7 @@ from pandas import DataFrame
 log = logging.getLogger(__name__)
 
 
-def flatten(l: List) -> Iterator[object]:
+def flatten(l: Iterator[object]) -> Iterator[object]:
     """
     Thanks to this StackOverflow answer: https://stackoverflow.com/a/10824420
     """
@@ -43,7 +43,7 @@ def profile(log: logging.Logger) -> Callable:
             dt = t1 - t0
             mm = int(round(dt / 60))
             ss = dt % 60
-            log.info(f'Elapsed time: {mm}m, {ss:.2f}s')
+            log.info(f"Elapsed time: {mm}m, {ss:.2f}s")
 
         return _wrapper
 

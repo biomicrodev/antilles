@@ -10,15 +10,14 @@ from antilles.utils.io import DAO
 
 def validate(config: dict):
     # TODO: add deeper key-value pair checking
-    keys = ['name', 'slide_regex', 'image_regex', 'output_order', 'blocks',
-            'devices']
+    keys = ["name", "slide_regex", "image_regex", "output_order", "blocks", "devices"]
     for key in keys:
         if key not in config.keys():
-            raise ValueError(f'{key} not in project.json!')
+            raise ValueError(f"{key} not in project.json!")
 
 
 class Project:
-    filename = 'project.json'
+    filename = "project.json"
 
     def __init__(self, name: str):
         """
@@ -32,13 +31,14 @@ class Project:
 
     def check(self) -> None:
         block_names_fs = DAO.list_folders(self.relpath)
-        block_names_json = [b['name'] for b in self.config['blocks']]
+        block_names_json = [b["name"] for b in self.config["blocks"]]
 
         if set(block_names_fs) != set(block_names_json):
             raise ValueError(
-                'Blocks in file system and project.json do not match!\n'
+                "Blocks in file system and project.json do not match!\n"
                 f'File system: {", ".join(block_names_fs)}\n'
-                f'JSON: {", ".join(block_names_json)}')
+                f'JSON: {", ".join(block_names_json)}'
+            )
 
         self.log.info(f"Project {self.name} init")
         self.log.info("Blocks on file system: " + ", ".join(block_names_fs))
@@ -58,21 +58,21 @@ class Project:
 
     @property
     def image_regex(self) -> Pattern:
-        regex = self.config['image_regex']
+        regex = self.config["image_regex"]
         return re.compile(regex)
 
     @property
     def slide_regex(self) -> Pattern:
-        regex = self.config['slide_regex']
+        regex = self.config["slide_regex"]
         return re.compile(regex)
 
     @property
     def blocks(self) -> List[Block]:
-        return [Block(b, self) for b in self.config['blocks']]
+        return [Block(b, self) for b in self.config["blocks"]]
 
     def block(self, name: str) -> Block:
         for b in self.blocks:
             if b.name == name:
                 return b
 
-        raise ValueError(f'Block {name} not found in {self.name}!')
+        raise ValueError(f"Block {name} not found in {self.name}!")

@@ -5,11 +5,7 @@ from PIL import Image
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.figure import Figure
 
-known_types = {
-    'int': int,
-    'float': float,
-    'str': str
-}
+known_types = {"int": int, "float": float, "str": str}
 
 
 class ButtonPanel(wx.Panel):
@@ -18,14 +14,14 @@ class ButtonPanel(wx.Panel):
 
         buttonSize = (70, 30)
 
-        self.prevBtn = wx.Button(self, label='Prev', size=buttonSize)
+        self.prevBtn = wx.Button(self, label="Prev", size=buttonSize)
         self.prevBtn.Disable()
 
-        self.nextBtn = wx.Button(self, label='Next', size=buttonSize)
+        self.nextBtn = wx.Button(self, label="Next", size=buttonSize)
         self.nextBtn.Disable()
 
-        self.saveBtn = wx.Button(self, label='Save', size=buttonSize)
-        self.doneBtn = wx.Button(self, label='Done', size=buttonSize)
+        self.saveBtn = wx.Button(self, label="Save", size=buttonSize)
+        self.doneBtn = wx.Button(self, label="Done", size=buttonSize)
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.prevBtn)
@@ -52,7 +48,7 @@ class BaseInteractorsPanel(wx.Panel):
     def BuildUI(self):
         self.figure = Figure()
         self.axes = self.figure.add_subplot(1, 1, 1)
-        self.axes.set_aspect('equal')
+        self.axes.set_aspect("equal")
         self.canvas = FigureCanvas(self, id=wx.ID_ANY, figure=self.figure)
         self.figure.tight_layout()
 
@@ -60,12 +56,12 @@ class BaseInteractorsPanel(wx.Panel):
         sizer.Add(self.canvas, flag=wx.EXPAND, proportion=1)
         self.SetSizer(sizer)
 
-        self.canvas.mpl_connect('draw_event', self.DrawCallback)
-        self.canvas.mpl_connect('button_press_event', self.OnClick)
-        self.canvas.mpl_connect('button_release_event', self.OnMouseButtonUp)
-        self.canvas.mpl_connect('motion_notify_event', self.OnMouseMoved)
-        self.canvas.mpl_connect('key_press_event', self.OnKeyPress)
-        self.canvas.mpl_connect('key_release_event', self.OnKeyRelease)
+        self.canvas.mpl_connect("draw_event", self.DrawCallback)
+        self.canvas.mpl_connect("button_press_event", self.OnClick)
+        self.canvas.mpl_connect("button_release_event", self.OnMouseButtonUp)
+        self.canvas.mpl_connect("motion_notify_event", self.OnMouseMoved)
+        self.canvas.mpl_connect("key_press_event", self.OnKeyPress)
+        self.canvas.mpl_connect("key_release_event", self.OnKeyRelease)
 
     def DrawCallback(self, event):
         self.background = self.canvas.copy_from_bbox(self.axes.bbox)
@@ -85,8 +81,7 @@ class BaseInteractorsPanel(wx.Panel):
             interactor.button_press_callback(event)
 
     def OnMouseButtonUp(self, event):
-        if event.inaxes is not None and \
-                event.inaxes.get_navigate_mode() is not None:
+        if event.inaxes is not None and event.inaxes.get_navigate_mode() is not None:
             return
 
         for interactor in self.interactors:
@@ -134,7 +129,7 @@ class BaseInteractorsPanel(wx.Panel):
 
     def Render(self, image: Image):
         self.axes.clear()
-        self.axes.imshow(image, interpolation='lanczos', vmin=0, vmax=255)
+        self.axes.imshow(image, interpolation="lanczos", vmin=0, vmax=255)
 
 
 class DevicesInteractorsPanel(BaseInteractorsPanel):
@@ -145,13 +140,13 @@ class DevicesInteractorsPanel(BaseInteractorsPanel):
         self.interactors = []
         for interactor in interactors:
             args = {
-                'axes': self.axes,
-                'id': interactor['id'],
-                'label': interactor['label'],
-                'cxy': interactor['cxy'],
-                'wxy': interactor['wxy']
+                "axes": self.axes,
+                "id": interactor["id"],
+                "label": interactor["label"],
+                "cxy": interactor["cxy"],
+                "wxy": interactor["wxy"],
             }
-            artist = interactor['artist'](**args)
+            artist = interactor["artist"](**args)
             self.interactors.append(artist)
 
     def GetInteractors(self) -> List[dict]:
@@ -172,8 +167,11 @@ class ImageAnnotationPanel(wx.Panel):
         super().__init__(parent=parent)
 
         font = wx.Font(
-            pointSize=18, family=wx.FONTFAMILY_SWISS, style=wx.FONTSTYLE_NORMAL,
-            weight=wx.FONTWEIGHT_NORMAL)
+            pointSize=18,
+            family=wx.FONTFAMILY_SWISS,
+            style=wx.FONTSTYLE_NORMAL,
+            weight=wx.FONTWEIGHT_NORMAL,
+        )
 
         self.title = wx.StaticText(self, style=wx.ST_ELLIPSIZE_MIDDLE)
         self.title.SetFont(font)
@@ -192,13 +190,12 @@ class DictionaryPanel(wx.Panel):
         super().__init__(parent=parent)
 
         self.listCtrl = wx.ListCtrl(self, style=wx.LC_REPORT | wx.BORDER_SUNKEN)
-        self.listCtrl.InsertColumn(0, 'Key')
-        self.listCtrl.InsertColumn(1, 'Value', width=125)
-        self.listCtrl.InsertColumn(2, 'Type')
+        self.listCtrl.InsertColumn(0, "Key")
+        self.listCtrl.InsertColumn(1, "Value", width=125)
+        self.listCtrl.InsertColumn(2, "Type")
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.Add(self.listCtrl, flag=wx.EXPAND | wx.ALL, proportion=1,
-                  border=10)
+        sizer.Add(self.listCtrl, flag=wx.EXPAND | wx.ALL, proportion=1, border=10)
         self.SetSizer(sizer)
 
     def UpsertOne(self, key: str, value: object) -> None:
@@ -239,8 +236,9 @@ class DictionaryPanel(wx.Panel):
 
     def Where(self, key: str) -> int:
         count = self.listCtrl.GetItemCount()
-        keys = [self.listCtrl.GetItem(itemIdx=row, col=0).GetText()
-                for row in range(count)]
+        keys = [
+            self.listCtrl.GetItem(itemIdx=row, col=0).GetText() for row in range(count)
+        ]
         index = next((i for i, k in enumerate(keys) if k == key), -1)
         return index
 
@@ -249,8 +247,8 @@ class DictionaryPanel(wx.Panel):
         v = self.listCtrl.GetItem(itemIdx=index, col=1).GetText()
         v_type = self.listCtrl.GetItem(itemIdx=index, col=2).GetText()
 
-        if v_type == 'bool':
-            v = v == 'True'
+        if v_type == "bool":
+            v = v == "True"
         else:
             v = known_types[v_type](v)
 
@@ -267,8 +265,8 @@ class MetadataPanel(wx.Panel):
         buttonSize = (70, 30)
 
         self.dictP = DictionaryPanel(self)
-        self.includeBtn = wx.Button(self, label='Include?', size=buttonSize)
-        self.excludeBtn = wx.Button(self, label='Exclude?', size=buttonSize)
+        self.includeBtn = wx.Button(self, label="Include?", size=buttonSize)
+        self.excludeBtn = wx.Button(self, label="Exclude?", size=buttonSize)
         self.SetUpButtons()
 
         buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -285,7 +283,7 @@ class MetadataPanel(wx.Panel):
         self.excludeBtn.Bind(wx.EVT_BUTTON, self.OnExclude)
 
     def OnInclude(self, event):
-        self.dictP.UpsertOne('include', True)
+        self.dictP.UpsertOne("include", True)
 
     def OnExclude(self, event):
-        self.dictP.UpsertOne('include', False)
+        self.dictP.UpsertOne("include", False)

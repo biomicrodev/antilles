@@ -5,18 +5,17 @@ from matplotlib import rcParams
 from matplotlib.axes import Axes
 from matplotlib.patches import FancyArrowPatch, Arc
 
-from antilles.utils import flatten
 from antilles.utils.math import cart2pol, pol2cart
 
-K_UP = 'w'
-K_DOWN = 's'
-K_LEFT = 'a'
-K_RIGHT = 'd'
+K_UP = "w"
+K_DOWN = "s"
+K_LEFT = "a"
+K_RIGHT = "d"
 ARROW_KEYS = K_UP + K_DOWN + K_LEFT + K_RIGHT
 epsilon = 20  # pixels
 
 for key, value in rcParams.items():
-    if key.startswith('keymap'):
+    if key.startswith("keymap"):
         for char in ARROW_KEYS:
             try:
                 value.remove(char)
@@ -40,10 +39,7 @@ def move(key, x, y):
     return x, y
 
 
-mode2color = {
-    'light': 'k',
-    'dark': 'w'
-}
+mode2color = {"light": "k", "dark": "w"}
 
 
 class BaseInteractor:
@@ -51,13 +47,13 @@ class BaseInteractor:
         self.axes = axes
 
         # TODO: better management of interactor colors
-        self.color = mode2color[kwargs.get('mode', 'light')]
-        self.active = kwargs.get('active', True)
+        self.color = mode2color[kwargs.get("mode", "light")]
+        self.active = kwargs.get("active", True)
 
         self.artists = {}
 
     def draw_callback(self, event):
-        for artist in flatten(self.artists.values()):
+        for artist in self.artists.values():
             self.axes.draw_artist(artist)
 
     def button_press_callback(self, event):
@@ -78,10 +74,10 @@ class BaseInteractor:
 
 class ArrowInteractor(BaseInteractor):
     def __init__(self, *args, **kwargs):
-        self.id = kwargs.get('id')
-        self.label = kwargs.get('label')
-        self.cxy = kwargs.get('cxy')
-        self.wxy = kwargs.get('wxy')
+        self.id = kwargs.get("id")
+        self.label = kwargs.get("label")
+        self.cxy = kwargs.get("cxy")
+        self.wxy = kwargs.get("wxy")
 
         super().__init__(*args, **kwargs)
 
@@ -92,48 +88,52 @@ class ArrowInteractor(BaseInteractor):
         self.init_label()
 
     def init_artists(self):
-        main_arrow_props = {'alpha': 0.5 if self.active else 0.2,
-                            'animated': True,
-                            'arrowstyle': '->,head_length=10,head_width=7',
-                            'color': self.color,
-                            'linestyle': 'solid'}
+        main_arrow_props = {
+            "alpha": 0.5 if self.active else 0.2,
+            "animated": True,
+            "arrowstyle": "->,head_length=10,head_width=7",
+            "color": self.color,
+            "linestyle": "solid",
+        }
 
-        line_props = {'alpha': 0.7 if self.active else 0.3,
-                      'animated': True,
-                      'color': self.color,
-                      'linestyle': '',
-                      'marker': 'x',
-                      'markerfacecolor': self.color,
-                      'markersize': 8,
-                      'markevery': [0]}
+        line_props = {
+            "alpha": 0.7 if self.active else 0.3,
+            "animated": True,
+            "color": self.color,
+            "linestyle": "",
+            "marker": "x",
+            "markerfacecolor": self.color,
+            "markersize": 8,
+            "markevery": [0],
+        }
 
         cx, cy = self.cxy
         wx, wy = self.wxy
 
         # main arrow
-        main_arrow = FancyArrowPatch(posA=self.cxy,
-                                     posB=self.wxy,
-                                     **main_arrow_props)
-        self.artists['main_arrow'] = main_arrow
+        main_arrow = FancyArrowPatch(posA=self.cxy, posB=self.wxy, **main_arrow_props)
+        self.artists["main_arrow"] = main_arrow
         self.axes.add_patch(main_arrow)
 
         # line
-        line, = self.axes.plot([cx, wx], [cy, wy], **line_props)
-        self.artists['line'] = line
+        (line,) = self.axes.plot([cx, wx], [cy, wy], **line_props)
+        self.artists["line"] = line
         self.axes.add_line(line)
 
     def init_label(self):
-        label_props = {'alpha': 0.7 if self.active else 0.2,
-                       'animated': True,
-                       'family': 'sans-serif',
-                       'horizontalalignment': 'center',
-                       'size': 10,
-                       'color': self.color,
-                       'verticalalignment': 'center'}
+        label_props = {
+            "alpha": 0.7 if self.active else 0.2,
+            "animated": True,
+            "family": "sans-serif",
+            "horizontalalignment": "center",
+            "size": 10,
+            "color": self.color,
+            "verticalalignment": "center",
+        }
 
         x, y = self._calc_label_pos()
         label = self.axes.text(x, y, self.label, **label_props)
-        self.artists['label'] = label
+        self.artists["label"] = label
 
     # === COMPUTED =========================================================== #
 
@@ -163,14 +163,12 @@ class ArrowInteractor(BaseInteractor):
     # === EXPORT ============================================================= #
 
     def get_params(self):
-        return {'id': self.id,
-                'cxy': self.cxy,
-                'wxy': self.wxy}
+        return {"id": self.id, "cxy": self.cxy, "wxy": self.wxy}
 
     # === INTERACTION ======================================================== #
 
     def get_ind_under_point(self, event):
-        line = self.artists['line']
+        line = self.artists["line"]
 
         xy = numpy.asarray(line.get_xydata())
         xyt = line.get_transform().transform(xy)
@@ -206,10 +204,9 @@ class ArrowInteractor(BaseInteractor):
         dx, dy = wx - cx, wy - cy
         lxy = self._calc_label_pos()
 
-        self.artists['main_arrow'].set_positions(self.cxy, self.wxy)
-        self.artists['line'].set_data([cx, cx + dx],
-                                      [cy, cy + dy])
-        self.artists['label'].set_position(lxy)
+        self.artists["main_arrow"].set_positions(self.cxy, self.wxy)
+        self.artists["line"].set_data([cx, cx + dx], [cy, cy + dy])
+        self.artists["label"].set_position(lxy)
 
     def motion_notify_callback(self, event):
         if self._ind is None:
@@ -219,8 +216,7 @@ class ArrowInteractor(BaseInteractor):
         if event.button != 1:
             return
 
-        x, y = int(round(event.xdata)), \
-               int(round(event.ydata))
+        x, y = int(round(event.xdata)), int(round(event.ydata))
         if self._ind == 1:
             self._set_arrow_head(x, y)
             self.update_all()
@@ -270,12 +266,12 @@ class ArrowInteractor(BaseInteractor):
 
 class BowInteractor(BaseInteractor):
     def __init__(self, *args, **kwargs):
-        self.id = kwargs.get('id')
-        self.cxy = kwargs.get('cxy')
-        self.wxy = kwargs.get('wxy')
+        self.id = kwargs.get("id")
+        self.cxy = kwargs.get("cxy")
+        self.wxy = kwargs.get("wxy")
 
-        self.span = kwargs.get('span', 90.0)  # degrees
-        self.stickout = kwargs.get('stickout', 50)  # px
+        self.span = kwargs.get("span", 90.0)  # degrees
+        self.stickout = kwargs.get("stickout", 50)  # px
 
         super().__init__(*args, **kwargs)
 
@@ -285,30 +281,38 @@ class BowInteractor(BaseInteractor):
         self.init_artists()
 
     def init_artists(self):
-        main_arrow_props = {'alpha': 0.5 if self.active else 0.2,
-                            'animated': True,
-                            'arrowstyle': '->,head_length=10,head_width=7',
-                            'color': self.color,
-                            'linestyle': 'solid'}
+        main_arrow_props = {
+            "alpha": 0.5 if self.active else 0.2,
+            "animated": True,
+            "arrowstyle": "->,head_length=10,head_width=7",
+            "color": self.color,
+            "linestyle": "solid",
+        }
 
-        line_props = {'alpha': 0.7 if self.active else 0.3,
-                      'animated': True,
-                      'color': self.color,
-                      'linestyle': '',
-                      'marker': 'x',
-                      'markerfacecolor': self.color,
-                      'markersize': 8}
+        line_props = {
+            "alpha": 0.7 if self.active else 0.3,
+            "animated": True,
+            "color": self.color,
+            "linestyle": "",
+            "marker": "x",
+            "markerfacecolor": self.color,
+            "markersize": 8,
+        }
 
-        arc_props = {'alpha': 0.5 if self.active else 0.3,
-                     'animated': True,
-                     'color': self.color,
-                     'linestyle': 'dashed'}
+        arc_props = {
+            "alpha": 0.5 if self.active else 0.3,
+            "animated": True,
+            "color": self.color,
+            "linestyle": "dashed",
+        }
 
-        prong_props = {'alpha': 0.5 if self.active else 0.2,
-                       'animated': True,
-                       'color': self.color,
-                       'linestyle': 'dashed',
-                       'linewidth': 1}
+        prong_props = {
+            "alpha": 0.5 if self.active else 0.2,
+            "animated": True,
+            "color": self.color,
+            "linestyle": "dashed",
+            "linewidth": 1,
+        }
 
         cx, cy = self.cxy
         wx, wy = self.wxy
@@ -319,41 +323,50 @@ class BowInteractor(BaseInteractor):
         ex, ey = pol2cart(r + self.stickout, angle)
 
         # main arrow
-        main_arrow = FancyArrowPatch(posA=self.cxy,
-                                     posB=(ex + cx, ey + cy),
-                                     **main_arrow_props)
-        self.artists['main_arrow'] = main_arrow
+        main_arrow = FancyArrowPatch(
+            posA=self.cxy, posB=(ex + cx, ey + cy), **main_arrow_props
+        )
+        self.artists["main_arrow"] = main_arrow
         self.axes.add_patch(main_arrow)
 
         # line
-        line, = self.axes.plot([cx, wx], [cy, wy], **line_props)
-        self.artists['line'] = line
+        (line,) = self.axes.plot([cx, wx], [cy, wy], **line_props)
+        self.artists["line"] = line
         self.axes.add_line(line)
 
         # arc
-        arc = Arc(xy=self.cxy, width=2 * r, height=2 * r, angle=angle,
-                  theta1=-hspan, theta2=hspan, **arc_props)
-        self.artists['arc'] = arc
+        arc = Arc(
+            xy=self.cxy,
+            width=2 * r,
+            height=2 * r,
+            angle=angle,
+            theta1=-hspan,
+            theta2=hspan,
+            **arc_props
+        )
+        self.artists["arc"] = arc
         self.axes.add_patch(arc)
 
         # prongs
         r_ext = r + self.stickout
         p1_angle = angle - hspan
-        p1 = {'tail': pol2cart(r, p1_angle),
-              'head': pol2cart(r_ext, p1_angle)}
-        prong1, = self.axes.plot([cx + p1['tail'][0], cx + p1['head'][0]],
-                                 [cy + p1['tail'][1], cy + p1['head'][1]],
-                                 **prong_props)
-        self.artists['prong1'] = prong1
+        p1 = {"tail": pol2cart(r, p1_angle), "head": pol2cart(r_ext, p1_angle)}
+        (prong1,) = self.axes.plot(
+            [cx + p1["tail"][0], cx + p1["head"][0]],
+            [cy + p1["tail"][1], cy + p1["head"][1]],
+            **prong_props
+        )
+        self.artists["prong1"] = prong1
         self.axes.add_line(prong1)
 
         p2_angle = angle + hspan
-        p2 = {'tail': pol2cart(r, p2_angle),
-              'head': pol2cart(r_ext, p2_angle)}
-        prong2, = self.axes.plot([cx + p2['tail'][0], cx + p2['head'][0]],
-                                 [cy + p2['tail'][1], cy + p2['head'][1]],
-                                 **prong_props)
-        self.artists['prong2'] = prong2
+        p2 = {"tail": pol2cart(r, p2_angle), "head": pol2cart(r_ext, p2_angle)}
+        (prong2,) = self.axes.plot(
+            [cx + p2["tail"][0], cx + p2["head"][0]],
+            [cy + p2["tail"][1], cy + p2["head"][1]],
+            **prong_props
+        )
+        self.artists["prong2"] = prong2
         self.axes.add_line(prong2)
 
     # === COMPUTED =========================================================== #
@@ -369,14 +382,12 @@ class BowInteractor(BaseInteractor):
     # === EXPORT ============================================================= #
 
     def get_params(self) -> dict:
-        return {'id': self.id,
-                'cxy': self.cxy,
-                'wxy': self.wxy}
+        return {"id": self.id, "cxy": self.cxy, "wxy": self.wxy}
 
     # === INTERACTION ======================================================== #
 
     def get_ind_under_point(self, event) -> int:
-        line = self.artists['line']
+        line = self.artists["line"]
 
         xy = numpy.asarray(line.get_xydata())
         xyt = line.get_transform().transform(xy)
@@ -414,10 +425,10 @@ class BowInteractor(BaseInteractor):
 
         ex, ey = pol2cart(r + self.stickout, angle)
 
-        self.artists['main_arrow'].set_positions(self.cxy, (cx + ex, cy + ey))
-        self.artists['line'].set_data([cx, wx], [cy, wy])
+        self.artists["main_arrow"].set_positions(self.cxy, (cx + ex, cy + ey))
+        self.artists["line"].set_data([cx, wx], [cy, wy])
 
-        arc = self.artists['arc']
+        arc = self.artists["arc"]
         arc.angle = angle
         arc.width = 2 * r
         arc.height = 2 * r
@@ -426,18 +437,18 @@ class BowInteractor(BaseInteractor):
         r_ext = r + self.stickout
         hspan = self.span / 2
         p1_angle = angle - hspan
-        p1 = {'tail': pol2cart(r, p1_angle),
-              'head': pol2cart(r_ext, p1_angle)}
-        self.artists['prong1'].set_data(
-            [cx + p1['tail'][0], cx + p1['head'][0]],
-            [cy + p1['tail'][1], cy + p1['head'][1]])
+        p1 = {"tail": pol2cart(r, p1_angle), "head": pol2cart(r_ext, p1_angle)}
+        self.artists["prong1"].set_data(
+            [cx + p1["tail"][0], cx + p1["head"][0]],
+            [cy + p1["tail"][1], cy + p1["head"][1]],
+        )
 
         p2_angle = angle + hspan
-        p2 = {'tail': pol2cart(r, p2_angle),
-              'head': pol2cart(r_ext, p2_angle)}
-        self.artists['prong2'].set_data(
-            [cx + p2['tail'][0], cx + p2['head'][0]],
-            [cy + p2['tail'][1], cy + p2['head'][1]])
+        p2 = {"tail": pol2cart(r, p2_angle), "head": pol2cart(r_ext, p2_angle)}
+        self.artists["prong2"].set_data(
+            [cx + p2["tail"][0], cx + p2["head"][0]],
+            [cy + p2["tail"][1], cy + p2["head"][1]],
+        )
 
     def motion_notify_callback(self, event):
         if self._ind is None:
@@ -447,8 +458,7 @@ class BowInteractor(BaseInteractor):
         if event.button != 1:
             return
 
-        x, y = int(round(event.xdata)), \
-               int(round(event.ydata))
+        x, y = int(round(event.xdata)), int(round(event.ydata))
         if self._ind == 1:
             self._set_arrow_head(x, y)
             self.update_all()
@@ -493,10 +503,10 @@ class BowInteractor(BaseInteractor):
 
 class RocketDeviceInteractor(BaseInteractor):
     def __init__(self, *args, **kwargs):
-        self.id = kwargs.get('id')
-        self.label = kwargs.get('label')
-        self.cxy = kwargs.get('cxy')
-        self.wxy = kwargs.get('wxy')
+        self.id = kwargs.get("id")
+        self.label = kwargs.get("label")
+        self.cxy = kwargs.get("cxy")
+        self.wxy = kwargs.get("wxy")
 
         super().__init__(*args, **kwargs)
 
@@ -507,32 +517,40 @@ class RocketDeviceInteractor(BaseInteractor):
         self.init_label()
 
     def init_artists(self):
-        main_arrow_props = {'alpha': 0.5 if self.active else 0.2,
-                            'animated': True,
-                            'arrowstyle': '->,head_length=10,head_width=7',
-                            'color': self.color,
-                            'linestyle': 'solid'}
+        main_arrow_props = {
+            "alpha": 0.5 if self.active else 0.2,
+            "animated": True,
+            "arrowstyle": "->,head_length=10,head_width=7",
+            "color": self.color,
+            "linestyle": "solid",
+        }
 
-        opp_arrow_props = {'alpha': 0.3 if self.active else 0.1,
-                           'animated': True,
-                           'arrowstyle': '->,head_length=10,head_width=7',
-                           'color': self.color,
-                           'linestyle': 'dashed'}
+        opp_arrow_props = {
+            "alpha": 0.3 if self.active else 0.1,
+            "animated": True,
+            "arrowstyle": "->,head_length=10,head_width=7",
+            "color": self.color,
+            "linestyle": "dashed",
+        }
 
-        right_props = {'alpha': 0.2 if self.active else 0.1,
-                       'animated': True,
-                       'color': self.color,
-                       'linestyle': 'dashed',
-                       'linewidth': 1}
+        right_props = {
+            "alpha": 0.2 if self.active else 0.1,
+            "animated": True,
+            "color": self.color,
+            "linestyle": "dashed",
+            "linewidth": 1,
+        }
 
-        line_props = {'alpha': 0.7 if self.active else 0.3,
-                      'animated': True,
-                      'color': self.color,
-                      'linestyle': '',
-                      'marker': 'x',
-                      'markerfacecolor': self.color,
-                      'markersize': 8,
-                      'markevery': [1]}
+        line_props = {
+            "alpha": 0.7 if self.active else 0.3,
+            "animated": True,
+            "color": self.color,
+            "linestyle": "",
+            "marker": "x",
+            "markerfacecolor": self.color,
+            "markersize": 8,
+            "markevery": [1],
+        }
 
         cx, cy = self.cxy
         wx, wy = self.wxy
@@ -540,45 +558,45 @@ class RocketDeviceInteractor(BaseInteractor):
         rx, ry = self._calc_right_delta()
 
         # main arrow
-        main_arrow = FancyArrowPatch(posA=self.cxy,
-                                     posB=self.wxy,
-                                     **main_arrow_props)
-        self.artists['main_arrow'] = main_arrow
+        main_arrow = FancyArrowPatch(posA=self.cxy, posB=self.wxy, **main_arrow_props)
+        self.artists["main_arrow"] = main_arrow
         self.axes.add_patch(main_arrow)
 
         # opposite arrow
-        opp_arrow = FancyArrowPatch(posA=self.cxy,
-                                    posB=(cx - dx, cy - dy),
-                                    **opp_arrow_props)
-        self.artists['opp_arrow'] = opp_arrow
+        opp_arrow = FancyArrowPatch(
+            posA=self.cxy, posB=(cx - dx, cy - dy), **opp_arrow_props
+        )
+        self.artists["opp_arrow"] = opp_arrow
         self.axes.add_patch(opp_arrow)
 
         # cross line
-        right, = self.axes.plot([cx - rx, cx, cx + rx],
-                                [cy - ry, cy, cy + ry],
-                                **right_props)
-        self.artists['right'] = right
+        (right,) = self.axes.plot(
+            [cx - rx, cx, cx + rx], [cy - ry, cy, cy + ry], **right_props
+        )
+        self.artists["right"] = right
         self.axes.add_line(right)
 
         # line
-        line, = self.axes.plot([cx - dx, cx, cx + dx],
-                               [cy - dy, cy, cy + dy],
-                               **line_props)
-        self.artists['line'] = line
+        (line,) = self.axes.plot(
+            [cx - dx, cx, cx + dx], [cy - dy, cy, cy + dy], **line_props
+        )
+        self.artists["line"] = line
         self.axes.add_line(line)
 
     def init_label(self):
-        label_props = {'alpha': 0.7 if not self.active else 0.2,
-                       'animated': True,
-                       'family': 'sans-serif',
-                       'horizontalalignment': 'center',
-                       'size': 10,
-                       'color': self.color,
-                       'verticalalignment': 'center'}
+        label_props = {
+            "alpha": 0.7 if not self.active else 0.2,
+            "animated": True,
+            "family": "sans-serif",
+            "horizontalalignment": "center",
+            "size": 10,
+            "color": self.color,
+            "verticalalignment": "center",
+        }
 
         x, y = self._calc_label_pos()
         label = self.axes.text(x, y, self.label, **label_props)
-        self.artists['label'] = label
+        self.artists["label"] = label
 
     # === COMPUTED =========================================================== #
 
@@ -606,15 +624,17 @@ class RocketDeviceInteractor(BaseInteractor):
     # === EXPORT ============================================================= #
 
     def get_params(self) -> dict:
-        return {'label': self.label,
-                'id': self.id,
-                'cxy': self.cxy,
-                'angle': round(self.angle, 1)}
+        return {
+            "label": self.label,
+            "id": self.id,
+            "cxy": self.cxy,
+            "angle": round(self.angle, 1),
+        }
 
     # === INTERACTION ======================================================== #
 
     def get_ind_under_point(self, event) -> int:
-        line = self.artists['line']
+        line = self.artists["line"]
 
         xy = numpy.asarray(line.get_xydata())
         xyt = line.get_transform().transform(xy)
@@ -651,13 +671,11 @@ class RocketDeviceInteractor(BaseInteractor):
         lx, ly = self._calc_label_pos()
         rx, ry = self._calc_right_delta()
 
-        self.artists['main_arrow'].set_positions(self.cxy, self.wxy)
-        self.artists['opp_arrow'].set_positions(self.cxy, (cx - dx, cy - dy))
-        self.artists['right'].set_data([cx - rx, cx, cx + rx],
-                                       [cy - ry, cy, cy + ry])
-        self.artists['line'].set_data([cx - dx, cx, cx + dx],
-                                      [cy - dy, cy, cy + dy])
-        self.artists['label'].set_position((lx, ly))
+        self.artists["main_arrow"].set_positions(self.cxy, self.wxy)
+        self.artists["opp_arrow"].set_positions(self.cxy, (cx - dx, cy - dy))
+        self.artists["right"].set_data([cx - rx, cx, cx + rx], [cy - ry, cy, cy + ry])
+        self.artists["line"].set_data([cx - dx, cx, cx + dx], [cy - dy, cy, cy + dy])
+        self.artists["label"].set_position((lx, ly))
 
     def motion_notify_callback(self, event):
         if self._ind is None:
@@ -667,8 +685,7 @@ class RocketDeviceInteractor(BaseInteractor):
         if event.button != 1:
             return
 
-        x, y = int(round(event.xdata)), \
-               int(round(event.ydata))
+        x, y = int(round(event.xdata)), int(round(event.ydata))
         if self._ind == 0:
             # opposite arrow head was moved
             cx, cy = self.cxy
@@ -728,10 +745,10 @@ class RocketDeviceInteractor(BaseInteractor):
 
 class BrainDeviceInteractor(BaseInteractor):
     def __init__(self, *args, **kwargs):
-        self.id = kwargs.get('id')
-        self.label = kwargs.get('label')
-        self.cxy = kwargs.get('cxy')
-        self.wxy = kwargs.get('wxy')
+        self.id = kwargs.get("id")
+        self.label = kwargs.get("label")
+        self.cxy = kwargs.get("cxy")
+        self.wxy = kwargs.get("wxy")
 
         super().__init__(*args, **kwargs)
 
@@ -742,62 +759,68 @@ class BrainDeviceInteractor(BaseInteractor):
         self.init_labels()
 
     def init_artists(self):
-        main_arrow_props = {'alpha': 0.5 if not self.active else 0.2,
-                            'animated': True,
-                            'arrowstyle': '->,head_length=10,head_width=7',
-                            'color': self.color,
-                            'linestyle': 'solid'}
+        main_arrow_props = {
+            "alpha": 0.5 if not self.active else 0.2,
+            "animated": True,
+            "arrowstyle": "->,head_length=10,head_width=7",
+            "color": self.color,
+            "linestyle": "solid",
+        }
 
-        opp_arrow_props = {'alpha': 0.3 if not self.active else 0.1,
-                           'animated': True,
-                           'arrowstyle': '->,head_length=10,head_width=7',
-                           'color': self.color,
-                           'linestyle': 'dashed'}
+        opp_arrow_props = {
+            "alpha": 0.3 if not self.active else 0.1,
+            "animated": True,
+            "arrowstyle": "->,head_length=10,head_width=7",
+            "color": self.color,
+            "linestyle": "dashed",
+        }
 
-        line_props = {'alpha': 0.7 if not self.active else 0.3,
-                      'animated': True,
-                      'color': self.color,
-                      'linestyle': '',
-                      'marker': 'x',
-                      'markerfacecolor': self.color,
-                      'markersize': 8,
-                      'markevery': [1]}
+        line_props = {
+            "alpha": 0.7 if not self.active else 0.3,
+            "animated": True,
+            "color": self.color,
+            "linestyle": "",
+            "marker": "x",
+            "markerfacecolor": self.color,
+            "markersize": 8,
+            "markevery": [1],
+        }
 
         cx, cy = self.cxy
         wx, wy = self.wxy
         dx, dy = wx - cx, wy - cy
 
         # main arrow
-        main_arrow = FancyArrowPatch(self.cxy, self.wxy,
-                                     **main_arrow_props)
-        self.artists['main_arrow'] = main_arrow
+        main_arrow = FancyArrowPatch(self.cxy, self.wxy, **main_arrow_props)
+        self.artists["main_arrow"] = main_arrow
         self.axes.add_patch(main_arrow)
 
         # opposite arrow
-        opp_arrow = FancyArrowPatch(self.cxy, (cx - dx, cy - dy),
-                                    **opp_arrow_props)
-        self.artists['opp_arrow'] = opp_arrow
+        opp_arrow = FancyArrowPatch(self.cxy, (cx - dx, cy - dy), **opp_arrow_props)
+        self.artists["opp_arrow"] = opp_arrow
         self.axes.add_patch(opp_arrow)
 
         # line
-        line, = self.axes.plot([cx - dx, cx, cx + dx],
-                               [cy - dy, cy, cy + dy],
-                               **line_props)
-        self.artists['line'] = line
+        (line,) = self.axes.plot(
+            [cx - dx, cx, cx + dx], [cy - dy, cy, cy + dy], **line_props
+        )
+        self.artists["line"] = line
         self.axes.add_line(line)
 
     def init_labels(self):
-        label_props = {'alpha': 0.7 if not self.active else 0.3,
-                       'animated': True,
-                       'color': self.color,
-                       'family': 'sans-serif',
-                       'horizontalalignment': 'center',
-                       'size': 10,
-                       'verticalalignment': 'center'}
+        label_props = {
+            "alpha": 0.7 if not self.active else 0.3,
+            "animated": True,
+            "color": self.color,
+            "family": "sans-serif",
+            "horizontalalignment": "center",
+            "size": 10,
+            "verticalalignment": "center",
+        }
 
         x, y = self._calc_label_pos()
         label = self.axes.text(x, y, self.label, **label_props)
-        self.artists['line'] = label
+        self.artists["line"] = label
 
     # === COMPUTED =========================================================== #
 
@@ -819,15 +842,17 @@ class BrainDeviceInteractor(BaseInteractor):
     # === EXPORT ============================================================= #
 
     def get_params(self) -> dict:
-        return {'label': self.label,
-                'id': self.id,
-                'cxy': self.cxy,
-                'angle': round(self.angle, 1)}
+        return {
+            "label": self.label,
+            "id": self.id,
+            "cxy": self.cxy,
+            "angle": round(self.angle, 1),
+        }
 
     # === INTERACTION ======================================================== #
 
     def get_ind_under_point(self, event) -> int:
-        line = self.artists['line']
+        line = self.artists["line"]
 
         xy = numpy.asarray(line.get_xydata())
         xyt = line.get_transform().transform(xy)
@@ -863,11 +888,10 @@ class BrainDeviceInteractor(BaseInteractor):
         dx, dy = wx - cx, wy - cy
         lx, ly = self._calc_label_pos()
 
-        self.artists['main_arrow'].set_positions(self.cxy, self.wxy)
-        self.artists['opp_arrow'].set_positions(self.cxy, (cx - dx, cy - dy))
-        self.artists['line'].set_data([cx - dx, cx, cx + dx],
-                                      [cy - dy, cy, cy + dy])
-        self.artists['label'].set_position((lx, ly))
+        self.artists["main_arrow"].set_positions(self.cxy, self.wxy)
+        self.artists["opp_arrow"].set_positions(self.cxy, (cx - dx, cy - dy))
+        self.artists["line"].set_data([cx - dx, cx, cx + dx], [cy - dy, cy, cy + dy])
+        self.artists["label"].set_position((lx, ly))
 
     def motion_notify_callback(self, event):
         if self._ind is None:
@@ -877,8 +901,7 @@ class BrainDeviceInteractor(BaseInteractor):
         if event.button != 1:
             return
 
-        x, y = int(round(event.xdata)), \
-               int(round(event.ydata))
+        x, y = int(round(event.xdata)), int(round(event.ydata))
         if self._ind == 0:
             # opposite arrow head was moved
             cx, cy = self.cxy
@@ -937,8 +960,8 @@ class BrainDeviceInteractor(BaseInteractor):
 
 
 device2interactor = {
-    'ARROW': ArrowInteractor,
-    'ROCKET': RocketDeviceInteractor,
-    'BRAIN': BrainDeviceInteractor,
-    'BOW': BowInteractor
+    "ARROW": ArrowInteractor,
+    "ROCKET": RocketDeviceInteractor,
+    "BRAIN": BrainDeviceInteractor,
+    "BOW": BowInteractor,
 }

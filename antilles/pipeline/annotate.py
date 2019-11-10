@@ -29,20 +29,22 @@ def add_dxy(x: float, y: float, l: float, a: float) -> Tuple[float, float]:
 
 
 def get_interactors(coords: DataFrame, angles: DataFrame) -> List[dict]:
-    device = 'ARROW'  # simplest indicator of direction
-    assert (device in device2interactor.keys())
+    device = "ARROW"  # simplest indicator of direction
+    assert device in device2interactor.keys()
 
     interactors = []
     for i, (sample, c_x, c_y) in coords.iterrows():
-        angle = next(a['angle'] for a in angles if a['sample'] == sample)
+        angle = next(a["angle"] for a in angles if a["sample"] == sample)
 
-        interactors.append({
-            'id': sample,
-            'label': sample,
-            'cxy': (c_x, c_y),
-            'angle': angle,
-            'device': device
-        })
+        interactors.append(
+            {
+                "id": sample,
+                "label": sample,
+                "cxy": (c_x, c_y),
+                "angle": angle,
+                "device": device,
+            }
+        )
 
     return interactors
 
@@ -51,41 +53,43 @@ class SlideArrowAnnotationModel:
     def __init__(self, coords: DataFrame, angles: DataFrame):
         self.coords = coords
         self.angles = angles
-        self.relpaths = sorted(list(set(self.coords['relpath'].unique())))
+        self.relpaths = sorted(list(set(self.coords["relpath"].unique())))
 
     def get(self, index: int) -> dict:
         relpath = self.relpaths[index]
-        inds = self.coords['relpath'] == relpath
-        coords = self.coords.loc[inds, ['sample', 'center_x', 'center_y']]
-        angles = self.angles.to_dict('records')
+        inds = self.coords["relpath"] == relpath
+        coords = self.coords.loc[inds, ["sample", "center_x", "center_y"]]
+        angles = self.angles.to_dict("records")
 
-        title = f'Slide {index + 1}/{len(self.relpaths)}: ' \
-                f'{os.path.basename(relpath)}'
+        title = (
+            f"Slide {index + 1}/{len(self.relpaths)}: " f"{os.path.basename(relpath)}"
+        )
         interactors = get_interactors(coords, angles)
 
         return {
-            'id': relpath,
-            'relpath': relpath,
-            'title': title,
-            'interactors': interactors
+            "id": relpath,
+            "relpath": relpath,
+            "title": title,
+            "interactors": interactors,
         }
 
     def set(self, slide: dict) -> None:
-        relpath = slide['id']
-        interactors = slide['interactors']
+        relpath = slide["id"]
+        interactors = slide["interactors"]
 
         for interactor in interactors:
-            sample = interactor['id']
-            cx, cy = interactor['cxy']
-            angle = interactor['angle']
+            sample = interactor["id"]
+            cx, cy = interactor["cxy"]
+            angle = interactor["angle"]
 
-            ind_c = (self.coords['relpath'] == relpath) & \
-                    (self.coords['sample'] == sample)
-            self.coords.loc[ind_c, ['center_x']] = cx
-            self.coords.loc[ind_c, ['center_y']] = cy
+            ind_c = (self.coords["relpath"] == relpath) & (
+                self.coords["sample"] == sample
+            )
+            self.coords.loc[ind_c, ["center_x"]] = cx
+            self.coords.loc[ind_c, ["center_y"]] = cy
 
-            ind_s = self.angles['sample'] == sample
-            self.angles.loc[ind_s, ['angle']] = angle
+            ind_s = self.angles["sample"] == sample
+            self.angles.loc[ind_s, ["angle"]] = angle
 
     @property
     def n_slides(self) -> int:
@@ -94,22 +98,26 @@ class SlideArrowAnnotationModel:
 
 class SlideArrowAnnotationView(wx.Frame):
     def __init__(self):
-        title = 'Slide Annotation'
-        frame_style = wx.MAXIMIZE_BOX | wx.MINIMIZE_BOX | wx.RESIZE_BORDER | \
-                      wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX | \
-                      wx.CLIP_CHILDREN
+        title = "Slide Annotation"
+        frame_style = (
+            wx.MAXIMIZE_BOX
+            | wx.MINIMIZE_BOX
+            | wx.RESIZE_BORDER
+            | wx.SYSTEM_MENU
+            | wx.CAPTION
+            | wx.CLOSE_BOX
+            | wx.CLIP_CHILDREN
+        )
         frame_size = 1500, 900  # width, height
 
-        super().__init__(parent=None, title=title, style=frame_style,
-                         size=frame_size)
+        super().__init__(parent=None, title=title, style=frame_style, size=frame_size)
 
         self.imageAnnotationP = ImageAnnotationPanel(self)
         self.buttonP = ButtonPanel(self)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.imageAnnotationP, flag=wx.EXPAND, proportion=1)
-        sizer.Add(self.buttonP, flag=wx.CENTER | wx.ALIGN_CENTER | wx.ALL,
-                  border=10)
+        sizer.Add(self.buttonP, flag=wx.CENTER | wx.ALIGN_CENTER | wx.ALL, border=10)
 
         self.SetSizer(sizer)
         self.SetUpShortcuts()
@@ -124,11 +132,13 @@ class SlideArrowAnnotationView(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnNext, id=nextId)
         self.Bind(wx.EVT_MENU, self.OnSave, id=saveId)
 
-        accel = wx.AcceleratorTable([
-            (wx.ACCEL_NORMAL, ord('Q'), prevId),
-            (wx.ACCEL_NORMAL, ord('E'), nextId),
-            (wx.ACCEL_CTRL, ord('S'), saveId)
-        ])
+        accel = wx.AcceleratorTable(
+            [
+                (wx.ACCEL_NORMAL, ord("Q"), prevId),
+                (wx.ACCEL_NORMAL, ord("E"), nextId),
+                (wx.ACCEL_CTRL, ord("S"), saveId),
+            ]
+        )
         self.SetAcceleratorTable(accel)
 
     def SetUpButtons(self):
@@ -141,14 +151,14 @@ class SlideArrowAnnotationView(wx.Frame):
     # === BUTTON ACTIONS ===================================================== #
 
     def OnPrev(self, event):
-        self.OnSave(event, do_after='prev')
+        self.OnSave(event, do_after="prev")
 
     def OnNext(self, event):
-        self.OnSave(event, do_after='next')
+        self.OnSave(event, do_after="next")
 
     def OnSave(self, event, do_after=None):
         interactors = self.imageAnnotationP.interactorsP.GetInteractors()
-        pub.sendMessage('update', interactors=interactors, do_after=do_after)
+        pub.sendMessage("update", interactors=interactors, do_after=do_after)
 
     def OnDone(self, event):
         self.OnSave(event)
@@ -184,11 +194,9 @@ class SlideArrowAnnotationPresenter:
     def __init__(self, model, view):
         self.model = model
         self.view = view
-        self.state = {'ind': 0,
-                      'id': None,
-                      'factor': None}
+        self.state = {"ind": 0, "id": None, "factor": None}
 
-        pub.subscribe(self.on_changed, 'update')
+        pub.subscribe(self.on_changed, "update")
 
         self.view.Show()
 
@@ -197,78 +205,77 @@ class SlideArrowAnnotationPresenter:
         length = 100  # pixels
 
         for interactor in interactors:
-            angle = interactor.pop('angle')
-            cx, cy = interactor['cxy']
+            angle = interactor.pop("angle")
+            cx, cy = interactor["cxy"]
 
             dx, dy = pol2cart(length, angle)
-            interactor['wxy'] = cx + dx, cy + dy
+            interactor["wxy"] = cx + dx, cy + dy
         return interactors
 
     @staticmethod
     def coords_to_angle(interactors: List[dict]):
         for interactor in interactors:
-            cx, cy = interactor['cxy']
-            wx, wy = interactor.pop('wxy')
+            cx, cy = interactor["cxy"]
+            wx, wy = interactor.pop("wxy")
 
             _, angle = cart2pol(wx - cx, wy - cy)
-            interactor['angle'] = round(angle, 1)
+            interactor["angle"] = round(angle, 1)
         return interactors
 
     @staticmethod
     def scale(interactors: List[dict], factor: float):
         for interactor in interactors:
-            cx, cy = interactor['cxy']
+            cx, cy = interactor["cxy"]
             cx, cy = cx * factor, cy * factor
             cx, cy = int(round(cx)), int(round(cy))
-            interactor['cxy'] = cx, cy
+            interactor["cxy"] = cx, cy
         return interactors
 
     def is_first(self) -> bool:
-        return self.state['ind'] == 0
+        return self.state["ind"] == 0
 
     def is_last(self) -> bool:
-        return self.state['ind'] == (self.model.n_slides - 1)
+        return self.state["ind"] == (self.model.n_slides - 1)
 
     def render(self) -> None:
-        ind = self.state['ind']
+        ind = self.state["ind"]
         slide = self.model.get(ind)
-        thumbnail = get_thumbnail(slide['relpath'])
-        self.state['id'] = slide['relpath']
-        self.state['factor'] = thumbnail['factor']
+        thumbnail = get_thumbnail(slide["relpath"])
+        self.state["id"] = slide["relpath"]
+        self.state["factor"] = thumbnail["factor"]
 
-        interactors = slide['interactors']
-        interactors = [{
-            'id': a['id'],
-            'label': a['label'],
-            'cxy': a['cxy'],
-            'angle': a['angle'],
-            'artist': device2interactor[a['device']]
-        } for a in interactors]
-        interactors = self.scale(interactors, 1 / self.state['factor'])
+        interactors = slide["interactors"]
+        interactors = [
+            {
+                "id": a["id"],
+                "label": a["label"],
+                "cxy": a["cxy"],
+                "angle": a["angle"],
+                "artist": device2interactor[a["device"]],
+            }
+            for a in interactors
+        ]
+        interactors = self.scale(interactors, 1 / self.state["factor"])
         interactors = self.angles_to_coords(interactors)
 
         self.view.SetInteractors(interactors)
-        self.view.SetImageTitle(slide['title'])
-        self.view.SetImage(thumbnail['image'])
+        self.view.SetImageTitle(slide["title"])
+        self.view.SetImage(thumbnail["image"])
 
-        self.view.UpdateSequenceButtons(first=self.is_first(),
-                                        last=self.is_last())
+        self.view.UpdateSequenceButtons(first=self.is_first(), last=self.is_last())
         self.view.Draw()
 
     def on_changed(self, interactors, do_after=None):
         interactors = self.coords_to_angle(interactors)
-        interactors = self.scale(interactors, self.state['factor'])
-        slide = {
-            'id': self.state['id'],
-            'interactors': interactors
-        }
+        interactors = self.scale(interactors, self.state["factor"])
+        slide = {"id": self.state["id"], "interactors": interactors}
         self.model.set(slide)
 
-        if do_after == 'prev' and not self.is_first():
-            self.state['ind'] -= 1
+        if do_after == "prev" and not self.is_first():
+            self.state["ind"] -= 1
             self.render()
-        elif do_after == 'next' and not self.is_last():
-            self.state['ind'] += 1
+        elif do_after == "next" and not self.is_last():
+            self.state["ind"] += 1
             self.render()
 
 

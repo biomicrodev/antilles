@@ -14,8 +14,7 @@ def cart2pol(x: float, y: float, in_deg: bool = True) -> Tuple[float, float]:
     return r, theta
 
 
-def pol2cart(r: float, theta: float, in_degs: bool = True) \
-        -> Tuple[float, float]:
+def pol2cart(r: float, theta: float, in_degs: bool = True) -> Tuple[float, float]:
     if in_degs:
         theta = (theta + 180) % 360 - 180
         theta = math.radians(theta)
@@ -34,8 +33,7 @@ def make_even_grid(n: int) -> Tuple[int, int]:
     return nx, ny
 
 
-def init_arrow_coords(dims: Tuple[int, int], n: int) \
-        -> Iterator[Tuple[int, int]]:
+def init_arrow_coords(dims: Tuple[int, int], n: int) -> Iterator[Tuple[int, int]]:
     w, h = dims
     nx, ny = make_even_grid(n)
 
