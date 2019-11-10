@@ -136,7 +136,7 @@ def make_mask(params: dict, dims: Tuple[int, int]) -> numpy.ndarray:
     dx, dy = wx - cx, wy - cy
     center_length, center_angle = cart2pol(dy, dx)
 
-    mask = _make_mask(
+    return _make_mask(
         dims=dims,
         pos=(cx, cy),
         radius=center_length + offset + thickness,
@@ -144,8 +144,6 @@ def make_mask(params: dict, dims: Tuple[int, int]) -> numpy.ndarray:
         th=center_angle,
         hspan=span / 2,
     )
-
-    return mask
 
 
 class MakeWedgeMask(cpm.Module):
