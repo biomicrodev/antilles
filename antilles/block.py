@@ -5,7 +5,6 @@ from typing import List
 
 import pandas
 
-from antilles.project import Project
 from antilles.utils import upsert
 from antilles.utils.image import get_slide_dims
 from antilles.utils.io import DAO, get_sample_prefix
@@ -137,7 +136,7 @@ def get_step_dir(step: Step, **kwargs) -> str:
 
 
 class Block:
-    def __init__(self, block: dict, project: Project):
+    def __init__(self, block: dict, project):
         """
         A Block is a directory initially containing three subdirectories:
           1. 'annotations', containing csv files of where regions are

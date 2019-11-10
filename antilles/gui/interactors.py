@@ -1,8 +1,9 @@
-from typing import Tuple
+from typing import Tuple, Dict, Union
 
 import numpy
 from matplotlib import rcParams
 from matplotlib.axes import Axes
+from matplotlib.backend_bases import Event, MouseEvent
 from matplotlib.patches import FancyArrowPatch, Arc
 
 from antilles.utils.math import cart2pol, pol2cart
@@ -39,45 +40,44 @@ def move(key, x, y):
     return x, y
 
 
-mode2color = {"light": "k", "dark": "w"}
+mode2color: Dict[str, str] = {"light": "k", "dark": "w"}
 
 
 class BaseInteractor:
     def __init__(self, axes: Axes, **kwargs):
-        self.axes = axes
+        self.axes: Axes = axes
 
         # TODO: better management of interactor colors
-        self.color = mode2color[kwargs.get("mode", "light")]
-        self.active = kwargs.get("active", True)
-
+        self.color: str = mode2color[kwargs.get("mode", "light")]
+        self.active: bool = kwargs.get("active", True)
         self.artists = {}
 
     def draw_callback(self, event):
         for artist in self.artists.values():
             self.axes.draw_artist(artist)
 
-    def button_press_callback(self, event):
+    def button_press_callback(self, event: Event):
         raise NotImplemented
 
-    def button_release_callback(self, event):
+    def button_release_callback(self, event: Event):
         raise NotImplemented
 
-    def motion_notify_callback(self, event):
+    def motion_notify_callback(self, event: Event):
         raise NotImplemented
 
-    def key_press_event(self, event):
+    def key_press_event(self, event: Event):
         raise NotImplemented
 
-    def key_release_event(self, event):
+    def key_release_event(self, event: Event):
         raise NotImplemented
 
 
 class ArrowInteractor(BaseInteractor):
     def __init__(self, *args, **kwargs):
-        self.id = kwargs.get("id")
-        self.label = kwargs.get("label")
-        self.cxy = kwargs.get("cxy")
-        self.wxy = kwargs.get("wxy")
+        self.id: str = kwargs.get("id")
+        self.label: str = kwargs.get("label")
+        self.cxy: Tuple[int, int] = kwargs.get("cxy")
+        self.wxy: Tuple[int, int] = kwargs.get("wxy")
 
         super().__init__(*args, **kwargs)
 
@@ -138,14 +138,14 @@ class ArrowInteractor(BaseInteractor):
     # === COMPUTED =========================================================== #
 
     @property
-    def angle(self):
+    def angle(self) -> float:
         cx, cy = self.cxy
         wx, wy = self.wxy
         dx, dy = wx - cx, wy - cy
         _, angle = cart2pol(dx, dy)
         return angle
 
-    def _calc_label_pos(self):
+    def _calc_label_pos(self) -> Tuple[float, float]:
         offset = 60  # pixels
         angle = self.angle + 90
 
@@ -154,7 +154,7 @@ class ArrowInteractor(BaseInteractor):
         x, y = cx + dx, cy + dy
         return x, y
 
-    def _calc_right_delta(self):
+    def _calc_right_delta(self) -> Tuple[float, float]:
         right_offset = 40
         angle = self.angle + 90
         rx, ry = pol2cart(right_offset, angle)
@@ -162,7 +162,7 @@ class ArrowInteractor(BaseInteractor):
 
     # === EXPORT ============================================================= #
 
-    def get_params(self):
+    def get_params(self) -> Dict[str, Union[str, Tuple[int, int]]]:
         return {"id": self.id, "cxy": self.cxy, "wxy": self.wxy}
 
     # === INTERACTION ======================================================== #
@@ -183,7 +183,7 @@ class ArrowInteractor(BaseInteractor):
 
         return ind
 
-    def button_press_callback(self, event):
+    def button_press_callback(self, event: MouseEvent):
         if event.inaxes is None:
             return
         if event.button != 1:
@@ -192,7 +192,7 @@ class ArrowInteractor(BaseInteractor):
         self._ind = self.get_ind_under_point(event)
         self._ind_last = self._ind
 
-    def button_release_callback(self, event):
+    def button_release_callback(self, event: MouseEvent):
         if event.button != 1:
             return
 
@@ -208,7 +208,7 @@ class ArrowInteractor(BaseInteractor):
         self.artists["line"].set_data([cx, cx + dx], [cy, cy + dy])
         self.artists["label"].set_position(lxy)
 
-    def motion_notify_callback(self, event):
+    def motion_notify_callback(self, event: MouseEvent):
         if self._ind is None:
             return
         if event.inaxes is None:
@@ -225,7 +225,7 @@ class ArrowInteractor(BaseInteractor):
             self._set_arrow_tail(x, y)
             self.update_all()
 
-    def key_press_event(self, event):
+    def key_press_event(self, event: MouseEvent):
         if self._ind_last is None:
             return
         if event.inaxes is None:
@@ -245,7 +245,7 @@ class ArrowInteractor(BaseInteractor):
             self._set_arrow_tail(cx, cy)
             self.update_all()
 
-    def key_release_event(self, event):
+    def key_release_event(self, event: MouseEvent):
         if self._ind_last is None:
             return
         if event.inaxes is None:
@@ -386,7 +386,7 @@ class BowInteractor(BaseInteractor):
 
     # === INTERACTION ======================================================== #
 
-    def get_ind_under_point(self, event) -> int:
+    def get_ind_under_point(self, event: MouseEvent) -> int:
         line = self.artists["line"]
 
         xy = numpy.asarray(line.get_xydata())
@@ -402,7 +402,7 @@ class BowInteractor(BaseInteractor):
 
         return ind
 
-    def button_press_callback(self, event):
+    def button_press_callback(self, event: MouseEvent):
         if event.inaxes is None:
             return
         if event.button != 1:
@@ -411,7 +411,7 @@ class BowInteractor(BaseInteractor):
         self._ind = self.get_ind_under_point(event)
         self._ind_last = self._ind
 
-    def button_release_callback(self, event):
+    def button_release_callback(self, event: MouseEvent):
         if event.button != 1:
             return
 
@@ -450,7 +450,7 @@ class BowInteractor(BaseInteractor):
             [cy + p2["tail"][1], cy + p2["head"][1]],
         )
 
-    def motion_notify_callback(self, event):
+    def motion_notify_callback(self, event: MouseEvent):
         if self._ind is None:
             return
         if event.inaxes is None:
@@ -467,7 +467,7 @@ class BowInteractor(BaseInteractor):
             self._set_arrow_tail(x, y)
             self.update_all()
 
-    def key_press_event(self, event):
+    def key_press_event(self, event: MouseEvent):
         if self._ind_last is None:
             return
         if event.inaxes is None:
@@ -487,7 +487,7 @@ class BowInteractor(BaseInteractor):
             self._set_arrow_tail(cx, cy)
             self.update_all()
 
-    def key_release_event(self, event):
+    def key_release_event(self, event: MouseEvent):
         if self._ind_last is None:
             return
         if event.inaxes is None:
@@ -633,7 +633,7 @@ class RocketDeviceInteractor(BaseInteractor):
 
     # === INTERACTION ======================================================== #
 
-    def get_ind_under_point(self, event) -> int:
+    def get_ind_under_point(self, event: MouseEvent) -> int:
         line = self.artists["line"]
 
         xy = numpy.asarray(line.get_xydata())
@@ -649,7 +649,7 @@ class RocketDeviceInteractor(BaseInteractor):
 
         return ind
 
-    def button_press_callback(self, event):
+    def button_press_callback(self, event: MouseEvent):
         if event.inaxes is None:
             return
         if event.button != 1:
@@ -658,7 +658,7 @@ class RocketDeviceInteractor(BaseInteractor):
         self._ind = self.get_ind_under_point(event)
         self._ind_last = self._ind
 
-    def button_release_callback(self, event):
+    def button_release_callback(self, event: MouseEvent):
         if event.button != 1:
             return
 
@@ -677,7 +677,7 @@ class RocketDeviceInteractor(BaseInteractor):
         self.artists["line"].set_data([cx - dx, cx, cx + dx], [cy - dy, cy, cy + dy])
         self.artists["label"].set_position((lx, ly))
 
-    def motion_notify_callback(self, event):
+    def motion_notify_callback(self, event: MouseEvent):
         if self._ind is None:
             return
         if event.inaxes is None:
@@ -708,7 +708,7 @@ class RocketDeviceInteractor(BaseInteractor):
             self.wxy = x, y
             self.update_all()
 
-    def key_press_event(self, event):
+    def key_press_event(self, event: MouseEvent):
         if self._ind_last is None:
             return
         if event.inaxes is None:
@@ -736,7 +736,7 @@ class RocketDeviceInteractor(BaseInteractor):
             self.wxy = move(key, *self.wxy)
             self.update_all()
 
-    def key_release_event(self, event):
+    def key_release_event(self, event: MouseEvent):
         if self._ind_last is None:
             return
         if event.inaxes is None:
@@ -851,7 +851,7 @@ class BrainDeviceInteractor(BaseInteractor):
 
     # === INTERACTION ======================================================== #
 
-    def get_ind_under_point(self, event) -> int:
+    def get_ind_under_point(self, event: MouseEvent) -> int:
         line = self.artists["line"]
 
         xy = numpy.asarray(line.get_xydata())
@@ -867,7 +867,7 @@ class BrainDeviceInteractor(BaseInteractor):
 
         return ind
 
-    def button_press_callback(self, event):
+    def button_press_callback(self, event: MouseEvent):
         if event.inaxes is None:
             return
         if event.button != 1:
@@ -876,7 +876,7 @@ class BrainDeviceInteractor(BaseInteractor):
         self._ind = self.get_ind_under_point(event)
         self._ind_last = self._ind
 
-    def button_release_callback(self, event):
+    def button_release_callback(self, event: MouseEvent):
         if event.button != 1:
             return
 
@@ -893,7 +893,7 @@ class BrainDeviceInteractor(BaseInteractor):
         self.artists["line"].set_data([cx - dx, cx, cx + dx], [cy - dy, cy, cy + dy])
         self.artists["label"].set_position((lx, ly))
 
-    def motion_notify_callback(self, event):
+    def motion_notify_callback(self, event: MouseEvent):
         if self._ind is None:
             return
         if event.inaxes is None:
@@ -924,7 +924,7 @@ class BrainDeviceInteractor(BaseInteractor):
             self.wxy = x, y
             self.update_all()
 
-    def key_press_event(self, event):
+    def key_press_event(self, event: MouseEvent):
         if self._ind_last is None:
             return
         if event.inaxes is None:
@@ -952,7 +952,7 @@ class BrainDeviceInteractor(BaseInteractor):
             self.wxy = move(key, *self.wxy)
             self.update_all()
 
-    def key_release_event(self, event):
+    def key_release_event(self, event: MouseEvent):
         if self._ind_last is None:
             return
         if event.inaxes is None:
