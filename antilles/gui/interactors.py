@@ -1,6 +1,6 @@
 import numpy
 from matplotlib import rcParams
-from matplotlib.patches import FancyArrowPatch
+from matplotlib.patches import FancyArrowPatch, Arc
 
 from antilles.utils import flatten
 from antilles.utils.math import cart2pol, pol2cart
@@ -106,7 +106,6 @@ class ArrowInteractor(BaseInteractor):
 
         cx, cy = self.cxy
         wx, wy = self.wxy
-        dx, dy = wx - cx, wy - cy
 
         # main arrow
         main_arrow = FancyArrowPatch(posA=self.cxy,
@@ -116,9 +115,7 @@ class ArrowInteractor(BaseInteractor):
         self.axes.add_patch(main_arrow)
 
         # line
-        line, = self.axes.plot([cx, cx + dx],
-                               [cy, cy + dy],
-                               **line_props)
+        line, = self.axes.plot([cx, wx], [cy, wy], **line_props)
         self.artists['line'] = line
         self.axes.add_line(line)
 
@@ -139,8 +136,9 @@ class ArrowInteractor(BaseInteractor):
 
     @property
     def angle(self):
-        dx = self.wxy[0] - self.cxy[0]
-        dy = self.wxy[1] - self.cxy[1]
+        cx, cy = self.cxy
+        wx, wy = self.wxy
+        dx, dy = wx - cx, wy - cy
         _, angle = cart2pol(dx, dy)
         return angle
 
@@ -265,6 +263,235 @@ class ArrowInteractor(BaseInteractor):
         # move arrow head along with tail
         wx, wy = self.wxy
         self.wxy = wx - cx + x, wy - cy + y
+
+
+class BowInteractor(BaseInteractor):
+    def __init__(self, *args, **kwargs):
+        self.id = kwargs.get('id')
+        self.cxy = kwargs.get('cxy')
+        self.wxy = kwargs.get('wxy')
+
+        self.span = kwargs.get('span', 90.0)  # degrees
+        self.stickout = kwargs.get('stickout', 50)  # px
+
+        super().__init__(*args, **kwargs)
+
+        self._ind = None
+        self._ind_last = None
+
+        self.init_artists()
+
+    def init_artists(self):
+        main_arrow_props = {'alpha': 0.5 if self.active else 0.2,
+                            'animated': True,
+                            'arrowstyle': '->,head_length=10,head_width=7',
+                            'color': self.color,
+                            'linestyle': 'solid'}
+
+        line_props = {'alpha': 0.7 if self.active else 0.3,
+                      'animated': True,
+                      'color': self.color,
+                      'linestyle': '',
+                      'marker': 'x',
+                      'markerfacecolor': self.color,
+                      'markersize': 8}
+
+        arc_props = {'alpha': 0.5 if self.active else 0.3,
+                     'animated': True,
+                     'color': self.color,
+                     'linestyle': 'dashed'}
+
+        prong_props = {'alpha': 0.5 if self.active else 0.2,
+                       'animated': True,
+                       'color': self.color,
+                       'linestyle': 'dashed',
+                       'linewidth': 1}
+
+        cx, cy = self.cxy
+        wx, wy = self.wxy
+        dx, dy = wx - cx, wy - cy
+        r, angle = cart2pol(dx, dy)
+        hspan = self.span / 2
+
+        ex, ey = pol2cart(r + self.stickout, angle)
+
+        # main arrow
+        main_arrow = FancyArrowPatch(posA=self.cxy,
+                                     posB=(ex + cx, ey + cy),
+                                     **main_arrow_props)
+        self.artists['main_arrow'] = main_arrow
+        self.axes.add_patch(main_arrow)
+
+        # line
+        line, = self.axes.plot([cx, wx], [cy, wy], **line_props)
+        self.artists['line'] = line
+        self.axes.add_line(line)
+
+        # arc
+        arc = Arc(xy=self.cxy, width=2 * r, height=2 * r, angle=angle,
+                  theta1=-hspan, theta2=hspan, **arc_props)
+        self.artists['arc'] = arc
+        self.axes.add_patch(arc)
+
+        # prongs
+        r_ext = r + self.stickout
+        p1_angle = angle - hspan
+        p1 = {'tail': pol2cart(r, p1_angle),
+              'head': pol2cart(r_ext, p1_angle)}
+        prong1, = self.axes.plot([cx + p1['tail'][0], cx + p1['head'][0]],
+                                 [cy + p1['tail'][1], cy + p1['head'][1]],
+                                 **prong_props)
+        self.artists['prong1'] = prong1
+        self.axes.add_line(prong1)
+
+        p2_angle = angle + hspan
+        p2 = {'tail': pol2cart(r, p2_angle),
+              'head': pol2cart(r_ext, p2_angle)}
+        prong2, = self.axes.plot([cx + p2['tail'][0], cx + p2['head'][0]],
+                                 [cy + p2['tail'][1], cy + p2['head'][1]],
+                                 **prong_props)
+        self.artists['prong2'] = prong2
+        self.axes.add_line(prong2)
+
+    # === COMPUTED =========================================================== #
+
+    @property
+    def angle(self):
+        cx, cy = self.cxy
+        wx, wy = self.wxy
+        dx, dy = wx - cx, wy - cy
+        _, angle = cart2pol(dx, dy)
+        return angle
+
+    # === EXPORT ============================================================= #
+
+    def get_params(self):
+        return {'id': self.id,
+                'cxy': self.cxy,
+                'wxy': self.wxy}
+
+    # === INTERACTION ======================================================== #
+
+    def get_ind_under_point(self, event):
+        line = self.artists['line']
+
+        xy = numpy.asarray(line.get_xydata())
+        xyt = line.get_transform().transform(xy)
+        xt, yt = xyt[:, 0], xyt[:, 1]
+
+        d = numpy.hypot(xt - event.x, yt - event.y)
+        ind_seq = numpy.nonzero(numpy.equal(d, numpy.amin(d)))[0]
+        ind = ind_seq[0]
+
+        if d[ind] >= epsilon:
+            ind = None
+
+        return ind
+
+    def button_press_callback(self, event):
+        if event.inaxes is None:
+            return
+        if event.button != 1:
+            return
+
+        self._ind = self.get_ind_under_point(event)
+        self._ind_last = self._ind
+
+    def button_release_callback(self, event):
+        if event.button != 1:
+            return
+
+        self._ind = None
+
+    def update_all(self):
+        cx, cy = self.cxy
+        wx, wy = self.wxy
+        dx, dy = wx - cx, wy - cy
+        r, angle = cart2pol(dx, dy)
+
+        ex, ey = pol2cart(r + self.stickout, angle)
+
+        self.artists['main_arrow'].set_positions(self.cxy, (cx + ex, cy + ey))
+        self.artists['line'].set_data([cx, wx], [cy, wy])
+
+        arc = self.artists['arc']
+        arc.angle = angle
+        arc.width = 2 * r
+        arc.height = 2 * r
+        arc.set_center(self.cxy)
+
+        r_ext = r + self.stickout
+        hspan = self.span / 2
+        p1_angle = angle - hspan
+        p1 = {'tail': pol2cart(r, p1_angle),
+              'head': pol2cart(r_ext, p1_angle)}
+        self.artists['prong1'].set_data(
+            [cx + p1['tail'][0], cx + p1['head'][0]],
+            [cy + p1['tail'][1], cy + p1['head'][1]])
+
+        p2_angle = angle + hspan
+        p2 = {'tail': pol2cart(r, p2_angle),
+              'head': pol2cart(r_ext, p2_angle)}
+        self.artists['prong2'].set_data(
+            [cx + p2['tail'][0], cx + p2['head'][0]],
+            [cy + p2['tail'][1], cy + p2['head'][1]])
+
+    def motion_notify_callback(self, event):
+        if self._ind is None:
+            return
+        if event.inaxes is None:
+            return
+        if event.button != 1:
+            return
+
+        x, y = int(round(event.xdata)), \
+               int(round(event.ydata))
+        if self._ind == 1:
+            self._set_arrow_head(x, y)
+            self.update_all()
+
+        elif self._ind == 0:
+            self._set_arrow_tail(x, y)
+            self.update_all()
+
+    def key_press_event(self, event):
+        if self._ind_last is None:
+            return
+        if event.inaxes is None:
+            return
+
+        key = event.key
+        if self._ind_last == 1:
+            # arrow head moved
+            wx, wy = self.wxy
+            wx, wy = move(key, wx, wy)
+            self._set_arrow_head(wx, wy)
+            self.update_all()
+
+        elif self._ind_last == 0:
+            cx, cy = self.cxy
+            cx, cy = move(key, cx, cy)
+            self._set_arrow_tail(cx, cy)
+            self.update_all()
+
+    def key_release_event(self, event):
+        if self._ind_last is None:
+            return
+        if event.inaxes is None:
+            return
+
+    # === ATOMIC INTERACTION ================================================= #
+    def _set_arrow_head(self, x, y):
+        self.wxy = x, y
+
+    def _set_arrow_tail(self, x, y):
+        self.cxy = x, y
+        # cx, cy = self.cxy
+        # self.cxy = x, y
+
+        # move arrow head along with tail
+        # wx, wy = self.wxy
+        # self.wxy = wx - cx + x, wy - cy + y
 
 
 class RocketDeviceInteractor(BaseInteractor):
@@ -714,4 +941,5 @@ device2interactor = {
     'ARROW': ArrowInteractor,
     'ROCKET': RocketDeviceInteractor,
     'BRAIN': BrainDeviceInteractor,
+    'BOW': BowInteractor
 }

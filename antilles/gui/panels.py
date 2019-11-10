@@ -1,10 +1,19 @@
+from typing import Tuple
+
 import wx
+from PIL import Image
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.figure import Figure
 
+known_types = {
+    'int': int,
+    'float': float,
+    'str': str
+}
+
 
 class ButtonPanel(wx.Panel):
-    def __init__(self, parent):
+    def __init__(self, parent=None):
         super().__init__(parent=parent)
 
         buttonSize = (70, 30)
@@ -123,7 +132,7 @@ class BaseInteractorsPanel(wx.Panel):
 
         self.canvas.blit(self.axes.bbox)
 
-    def Render(self, image):
+    def Render(self, image: Image):
         self.axes.clear()
         self.axes.imshow(image, interpolation='lanczos', vmin=0, vmax=255)
 
@@ -132,7 +141,7 @@ class DevicesInteractorsPanel(BaseInteractorsPanel):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
 
-    def SetInteractors(self, interactors):
+    def SetInteractors(self, interactors: list) -> None:
         self.interactors = []
         for interactor in interactors:
             args = {
@@ -145,7 +154,7 @@ class DevicesInteractorsPanel(BaseInteractorsPanel):
             artist = interactor['artist'](**args)
             self.interactors.append(artist)
 
-    def GetInteractors(self):
+    def GetInteractors(self) -> list:
         return [a.get_params() for a in self.interactors]
 
     def OnMouseMoved(self, event):
@@ -176,3 +185,107 @@ class ImageAnnotationPanel(wx.Panel):
         sizer.Add(self.interactorsP, flag=wx.EXPAND, proportion=1)
 
         self.SetSizer(sizer)
+
+
+class DictionaryPanel(wx.Panel):
+    def __init__(self, parent=None):
+        super().__init__(parent=parent)
+
+        self.listCtrl = wx.ListCtrl(self, style=wx.LC_REPORT | wx.BORDER_SUNKEN)
+        self.listCtrl.InsertColumn(0, 'Key')
+        self.listCtrl.InsertColumn(1, 'Value', width=125)
+        self.listCtrl.InsertColumn(2, 'Type')
+
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sizer.Add(self.listCtrl, flag=wx.EXPAND | wx.ALL, proportion=1,
+                  border=10)
+        self.SetSizer(sizer)
+
+    def UpsertOne(self, key: str, value: object) -> None:
+        index = self.Where(key)
+
+        v_type = type(value).__name__
+        if index != -1:
+            self.listCtrl.SetItem(index, 1, str(value))
+            self.listCtrl.SetItem(index, 2, v_type)
+        else:
+            count = self.listCtrl.GetItemCount()
+            self.listCtrl.InsertItem(count, key)
+            self.listCtrl.SetItem(count, 1, str(value))
+            self.listCtrl.SetItem(count, 2, v_type)
+
+    def UpsertMany(self, dct: dict) -> None:
+        for key, value in dct.items():
+            self.UpsertOne(key, value)
+
+    def GetOne(self, key: str) -> object:
+        index = self.Where(key)
+        if index != -1:
+            _, v = self.GetItemAt(index)
+            return v
+
+        else:
+            raise IndexError
+
+    def GetAll(self) -> dict:
+        dct = dict()
+
+        count = self.listCtrl.GetItemCount()
+        for row in range(count):
+            k, v = self.GetItemAt(row)
+            dct[k] = v
+
+        return dct
+
+    def Where(self, key: str) -> int:
+        count = self.listCtrl.GetItemCount()
+        keys = [self.listCtrl.GetItem(itemIdx=row, col=0).GetText()
+                for row in range(count)]
+        index = next((i for i, k in enumerate(keys) if k == key), -1)
+        return index
+
+    def GetItemAt(self, index: int) -> Tuple[str, object]:
+        k = self.listCtrl.GetItem(itemIdx=index, col=0).GetText()
+        v = self.listCtrl.GetItem(itemIdx=index, col=1).GetText()
+        v_type = self.listCtrl.GetItem(itemIdx=index, col=2).GetText()
+
+        if v_type == 'bool':
+            v = v == 'True'
+        else:
+            v = known_types[v_type](v)
+
+        return k, v
+
+    def Clear(self) -> None:
+        self.listCtrl.DeleteAllItems()
+
+
+class MetadataPanel(wx.Panel):
+    def __init__(self, parent=None):
+        super().__init__(parent=parent)
+
+        buttonSize = (70, 30)
+
+        self.dictP = DictionaryPanel(self)
+        self.includeBtn = wx.Button(self, label='Include?', size=buttonSize)
+        self.excludeBtn = wx.Button(self, label='Exclude?', size=buttonSize)
+        self.SetUpButtons()
+
+        buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttonSizer.Add(self.includeBtn, flag=wx.ALL, border=5)
+        buttonSizer.Add(self.excludeBtn, flag=wx.ALL, border=5)
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.dictP, flag=wx.EXPAND, proportion=1)
+        sizer.Add(buttonSizer, flag=wx.EXPAND | wx.ALL, border=5)
+        self.SetSizer(sizer)
+
+    def SetUpButtons(self):
+        self.includeBtn.Bind(wx.EVT_BUTTON, self.OnInclude)
+        self.excludeBtn.Bind(wx.EVT_BUTTON, self.OnExclude)
+
+    def OnInclude(self, event):
+        self.dictP.UpsertOne('include', True)
+
+    def OnExclude(self, event):
+        self.dictP.UpsertOne('include', False)

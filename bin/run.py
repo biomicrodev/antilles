@@ -13,7 +13,7 @@ def main():
     project_name = 'TEST'
     block_name = 'BLK1'
 
-    step = 0
+    step = 1
 
     # === COARSE ADJUST & EXTRACT ============================================ #
     if step == 0:

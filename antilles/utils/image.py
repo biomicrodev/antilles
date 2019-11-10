@@ -3,6 +3,7 @@ import warnings
 import numpy
 import openslide
 import wx
+from PIL import Image
 
 from antilles.utils.io import DAO
 
@@ -49,12 +50,21 @@ def calc_downsample_factor(dims):
 
 
 def get_thumbnail(path):
-    with openslide.OpenSlide(DAO.abs(path)) as obj:
-        dims = obj.dimensions
-        factor = calc_downsample_factor(dims)
+    try:
+        with openslide.OpenSlide(DAO.abs(path)) as obj:
+            dims = obj.dimensions
+            factor = calc_downsample_factor(dims)
 
-        dims_tn = tuple(int(round(float(s) / factor)) for s in dims)
-        image = obj.get_thumbnail(dims_tn)
+            dims_tn = tuple(int(round(float(s) / factor)) for s in dims)
+            image = obj.get_thumbnail(dims_tn)
+
+    except openslide.lowlevel.OpenSlideUnsupportedFormatError:
+        with Image.open(DAO.abs(path)) as obj:
+            dims = obj.size
+            factor = calc_downsample_factor(dims)
+
+            dims_tn = tuple(int(round(float(s) / factor)) for s in dims)
+            image = obj.resize(dims_tn, Image.LANCZOS)
 
     return {'factor': factor,
             'image': image}

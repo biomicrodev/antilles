@@ -18,6 +18,7 @@ class Field(Enum):
 
 
 class Step(Enum):
+    S0 = "0_slides"
     S1 = "1_regions"
     S2 = "2_regions_{mode}"
 
@@ -146,7 +147,7 @@ class Block:
 
     @property
     def slides(self):
-        dirpath = join(self.relpath, '0_slides')
+        dirpath = join(self.relpath, Step.S0.value)
         regex = self.project.slide_regex
 
         slides = []
