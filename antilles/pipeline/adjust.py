@@ -1,12 +1,14 @@
 import json
 import logging
 import os
+from typing import List
 
 import wx
 from PIL import Image
+from pandas import DataFrame
 from pubsub import pub
 
-from antilles.block import Field
+from antilles.block import Field, Block
 from antilles.gui.interactors import device2interactor
 from antilles.gui.panels import ImageAnnotationPanel, ButtonPanel, MetadataPanel
 from antilles.project import Project
@@ -28,11 +30,11 @@ def get_interactors(region: dict):
 
 
 class RegionBowAnnotationModel:
-    def __init__(self, regions):
+    def __init__(self, regions: DataFrame):
         self.regions = regions
         self.relpaths = sorted(list(set(self.regions['relpath'])))
 
-    def get(self, index):
+    def get(self, index: int) -> dict:
         relpath = self.relpaths[index]
         ind = self.regions['relpath'] == relpath
         region = self.regions.loc[ind, ['center_x', 'center_y',
@@ -51,7 +53,7 @@ class RegionBowAnnotationModel:
             'metadata': json.loads(region['metadata'].values[0])
         }
 
-    def set(self, region):
+    def set(self, region: dict):
         ind = self.regions['relpath'] == region['id']
         self.regions.loc[ind, ['metadata']] = json.dumps(region['metadata'])
 
@@ -63,7 +65,7 @@ class RegionBowAnnotationModel:
             self.regions.loc[ind, ['well_x', 'well_y']] = [w_x, w_y]
 
     @property
-    def n_regions(self):
+    def n_regions(self) -> int:
         return len(self.regions)
 
 
@@ -186,7 +188,7 @@ class RegionBowAnnotationPresenter:
         self.view.Show()
 
     @staticmethod
-    def scale(interactors: list, factor: float):
+    def scale(interactors: list, factor: float) -> List[dict]:
         for interactor in interactors:
             cx, cy = interactor['cxy']
             cx, cy = cx * factor, cy * factor
@@ -199,13 +201,13 @@ class RegionBowAnnotationPresenter:
             interactor['wxy'] = wx, wy
         return interactors
 
-    def is_first(self):
+    def is_first(self) -> bool:
         return self.state['ind'] == 0
 
-    def is_last(self):
+    def is_last(self) -> bool:
         return self.state['ind'] == (self.model.n_regions - 1)
 
-    def render(self):
+    def render(self) -> None:
         ind = self.state['ind']
         region = self.model.get(ind)
         thumbnail = get_thumbnail(region['relpath'])
@@ -249,7 +251,7 @@ class RegionBowAnnotationPresenter:
             self.render()
 
 
-def adjust_regions(*args, **kwargs):
+def adjust_regions(*args, **kwargs) -> None:
     model = RegionBowAnnotationModel(*args, **kwargs)
 
     app = wx.App()
@@ -261,12 +263,12 @@ def adjust_regions(*args, **kwargs):
 
 
 class Adjuster:
-    def __init__(self, project_name, block_name):
+    def __init__(self, project: Project, block: Block):
         self.log = logging.getLogger(__name__)
-        self.project = Project(project_name)
-        self.block = self.project.block(block_name)
+        self.project = project
+        self.block = block
 
-    def run(self):
+    def run(self) -> None:
         regions = self.block.get(Field.COORDS_BOW)
 
         adjust_regions(regions)

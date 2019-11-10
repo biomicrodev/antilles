@@ -1,13 +1,15 @@
 import logging
 import time
 from functools import reduce
+from typing import List, Iterator, Callable
 
 import pandas
+from pandas import DataFrame
 
 log = logging.getLogger(__name__)
 
 
-def flatten(l):
+def flatten(l: List) -> Iterator[object]:
     """
     Thanks to this StackOverflow answer: https://stackoverflow.com/a/10824420
     """
@@ -19,7 +21,7 @@ def flatten(l):
             yield i
 
 
-def upsert(update, using, cols):
+def upsert(update: DataFrame, using: DataFrame, cols: List[str]):
     indices = map(lambda x: ~update[x].isin(using[x]), cols)
     indices = reduce((lambda x, y: x | y), indices)
 
@@ -30,8 +32,8 @@ def upsert(update, using, cols):
     return updated
 
 
-def profile(log):
-    def wrapper(func):
+def profile(log: logging.Logger) -> Callable:
+    def wrapper(func: Callable) -> Callable:
         def _wrapper(*args, **kwargs):
             t0 = time.time()
 

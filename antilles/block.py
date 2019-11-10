@@ -1,9 +1,11 @@
 import logging
 from enum import Enum
 from os.path import join, dirname
+from typing import List
 
 import pandas
 
+from antilles.project import Project
 from antilles.utils import upsert
 from antilles.utils.image import get_slide_dims
 from antilles.utils.io import DAO, get_sample_prefix
@@ -33,7 +35,7 @@ columns_upsert = {
 }
 
 
-def unpack(block):
+def unpack(block: dict) -> List[dict]:
     samples = []
 
     b_samples = block['samples']
@@ -85,11 +87,12 @@ def unpack(block):
     return samples
 
 
-def init_coords_slides(slides, samples):
+def init_coords_slides(slides: List[dict], samples: List[dict]) \
+        -> pandas.DataFrame:
     df = []
     for slide in slides:
         dims = get_slide_dims(slide['relpath'])
-        coords = init_arrow_coords(dims, len(samples))
+        coords = list(init_arrow_coords(dims, len(samples)))
         for i, sample in enumerate(samples):
             df.append({**slide, **{
                 'sample': sample['name'],
@@ -103,14 +106,14 @@ def init_coords_slides(slides, samples):
     return df
 
 
-def init_angles_coarse(samples):
+def init_angles_coarse(samples: List[dict]) -> pandas.DataFrame:
     df = [{'sample': s['name'], 'angle': -90} for s in samples]
     df = pandas.DataFrame(df, columns=['sample', 'angle'])
     df.index = range(len(df))
     return df
 
 
-def get_step_dir(step, **kwargs):
+def get_step_dir(step: Step, **kwargs) -> str:
     assert (step.name in Step.__members__.keys())
     if step == Step.S1:
         s = Step.S1.value
@@ -122,7 +125,7 @@ def get_step_dir(step, **kwargs):
 
 
 class Block:
-    def __init__(self, block, project):
+    def __init__(self, block: dict, project: Project):
         """
         A Block is a directory initially containing three subdirectories:
           1. 'annotations', containing csv files of where regions are
@@ -142,11 +145,11 @@ class Block:
                       ", ".join(sample_names))
 
     @property
-    def relpath(self):
+    def relpath(self) -> str:
         return join(self.project.relpath, self.name)
 
     @property
-    def slides(self):
+    def slides(self) -> List[dict]:
         dirpath = join(self.relpath, Step.S0.value)
         regex = self.project.slide_regex
 
@@ -162,7 +165,7 @@ class Block:
         return slides
 
     @property
-    def images(self):
+    def images(self) -> List[dict]:
         dirpath = join(self.relpath, '0_images')
         regex = self.project.image_regex
 
@@ -175,7 +178,7 @@ class Block:
                 images.append(image)
         return images
 
-    def init(self, field):
+    def init(self, field: Field) -> pandas.DataFrame:
         if field == Field.COORDS_SLIDES:
             return init_coords_slides(self.slides, self.samples)
         elif field == Field.ANGLES_COARSE:
@@ -183,7 +186,7 @@ class Block:
         else:
             return pandas.DataFrame()
 
-    def get(self, field):
+    def get(self, field: Field) -> pandas.DataFrame:
         filename = join('annotations', f'{field.value}.csv')
         filepath = join(self.relpath, filename)
 
@@ -212,7 +215,7 @@ class Block:
         else:
             raise RuntimeError(f'Unknown field {field.name}!')
 
-    def save(self, df, field, overwrite=True):
+    def save(self, df: pandas.DataFrame, field: Field, overwrite: bool = True):
         filename = join('annotations', f'{field.value}.csv')
         filepath = join(self.relpath, filename)
 
@@ -222,5 +225,5 @@ class Block:
         else:
             self.log.info('Metadata not written.')
 
-    def clean(self):
+    def clean(self) -> None:
         DAO.rm_dir(join(self.relpath, Step.S1.value))

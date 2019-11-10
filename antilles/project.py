@@ -2,12 +2,13 @@ import json
 import logging
 import re
 from os.path import join
+from typing import Pattern, List
 
 from antilles.block import Block
 from antilles.utils.io import DAO
 
 
-def validate(config):
+def validate(config: dict):
     # TODO: add deeper key-value pair checking
     keys = ['name', 'slide_regex', 'image_regex', 'output_order', 'blocks',
             'devices']
@@ -19,17 +20,17 @@ def validate(config):
 class Project:
     filename = 'project.json'
 
-    def __init__(self, project_name):
+    def __init__(self, name: str):
         """
         A Project is a directory containing a project.json file and one or more
         subdirectories, each of which represents a block belonging to the
         project.
         """
         self.log = logging.getLogger(__name__)
-        self.name = project_name
+        self.name = name
         self.check()
 
-    def check(self):
+    def check(self) -> None:
         block_names_fs = DAO.list_folders(self.relpath)
         block_names_json = [b['name'] for b in self.config['blocks']]
 
@@ -44,11 +45,11 @@ class Project:
         self.log.info("Blocks in json file: " + ", ".join(block_names_json))
 
     @property
-    def relpath(self):
+    def relpath(self) -> str:
         return self.name
 
     @property
-    def config(self):
+    def config(self) -> dict:
         filepath = join(self.relpath, self.filename)
         with open(DAO.abs(filepath)) as file:
             config = json.load(file)
@@ -56,20 +57,20 @@ class Project:
             return config
 
     @property
-    def image_regex(self):
+    def image_regex(self) -> Pattern:
         regex = self.config['image_regex']
         return re.compile(regex)
 
     @property
-    def slide_regex(self):
+    def slide_regex(self) -> Pattern:
         regex = self.config['slide_regex']
         return re.compile(regex)
 
     @property
-    def blocks(self):
+    def blocks(self) -> List[Block]:
         return [Block(b, self) for b in self.config['blocks']]
 
-    def block(self, name):
+    def block(self, name: str) -> Block:
         for b in self.blocks:
             if b.name == name:
                 return b

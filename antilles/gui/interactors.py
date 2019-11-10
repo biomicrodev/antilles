@@ -1,5 +1,8 @@
+from typing import Tuple
+
 import numpy
 from matplotlib import rcParams
+from matplotlib.axes import Axes
 from matplotlib.patches import FancyArrowPatch, Arc
 
 from antilles.utils import flatten
@@ -44,7 +47,7 @@ mode2color = {
 
 
 class BaseInteractor:
-    def __init__(self, axes, **kwargs):
+    def __init__(self, axes: Axes, **kwargs):
         self.axes = axes
 
         # TODO: better management of interactor colors
@@ -253,10 +256,10 @@ class ArrowInteractor(BaseInteractor):
             return
 
     # === ATOMIC INTERACTION ================================================= #
-    def _set_arrow_head(self, x, y):
+    def _set_arrow_head(self, x: float, y: float):
         self.wxy = x, y
 
-    def _set_arrow_tail(self, x, y):
+    def _set_arrow_tail(self, x: float, y: float):
         cx, cy = self.cxy
         self.cxy = x, y
 
@@ -356,7 +359,7 @@ class BowInteractor(BaseInteractor):
     # === COMPUTED =========================================================== #
 
     @property
-    def angle(self):
+    def angle(self) -> float:
         cx, cy = self.cxy
         wx, wy = self.wxy
         dx, dy = wx - cx, wy - cy
@@ -365,14 +368,14 @@ class BowInteractor(BaseInteractor):
 
     # === EXPORT ============================================================= #
 
-    def get_params(self):
+    def get_params(self) -> dict:
         return {'id': self.id,
                 'cxy': self.cxy,
                 'wxy': self.wxy}
 
     # === INTERACTION ======================================================== #
 
-    def get_ind_under_point(self, event):
+    def get_ind_under_point(self, event) -> int:
         line = self.artists['line']
 
         xy = numpy.asarray(line.get_xydata())
@@ -481,17 +484,11 @@ class BowInteractor(BaseInteractor):
             return
 
     # === ATOMIC INTERACTION ================================================= #
-    def _set_arrow_head(self, x, y):
+    def _set_arrow_head(self, x: float, y: float):
         self.wxy = x, y
 
-    def _set_arrow_tail(self, x, y):
+    def _set_arrow_tail(self, x: float, y: float):
         self.cxy = x, y
-        # cx, cy = self.cxy
-        # self.cxy = x, y
-
-        # move arrow head along with tail
-        # wx, wy = self.wxy
-        # self.wxy = wx - cx + x, wy - cy + y
 
 
 class RocketDeviceInteractor(BaseInteractor):
@@ -586,20 +583,21 @@ class RocketDeviceInteractor(BaseInteractor):
     # === COMPUTED =========================================================== #
 
     @property
-    def angle(self):
-        delta_x = self.wxy[0] - self.cxy[0]
-        delta_y = self.wxy[1] - self.cxy[1]
+    def angle(self) -> float:
+        dx = self.wxy[0] - self.cxy[0]
+        dy = self.wxy[1] - self.cxy[1]
 
-        return cart2pol(delta_x, delta_y)[1]
+        _, angle = cart2pol(dx, dy)
+        return angle
 
-    def _calc_label_pos(self):
+    def _calc_label_pos(self) -> Tuple[float, float]:
         offset = 60
         angle = self.angle + 90
         dx, dy = pol2cart(offset, angle)
         x, y = self.cxy[0] + dx, self.cxy[1] + dy
         return x, y
 
-    def _calc_right_delta(self):
+    def _calc_right_delta(self) -> Tuple[float, float]:
         right_offset = 40
         angle = self.angle + 90
         rx, ry = pol2cart(right_offset, angle)
@@ -607,7 +605,7 @@ class RocketDeviceInteractor(BaseInteractor):
 
     # === EXPORT ============================================================= #
 
-    def get_params(self):
+    def get_params(self) -> dict:
         return {'label': self.label,
                 'id': self.id,
                 'cxy': self.cxy,
@@ -615,7 +613,7 @@ class RocketDeviceInteractor(BaseInteractor):
 
     # === INTERACTION ======================================================== #
 
-    def get_ind_under_point(self, event):
+    def get_ind_under_point(self, event) -> int:
         line = self.artists['line']
 
         xy = numpy.asarray(line.get_xydata())
@@ -804,13 +802,14 @@ class BrainDeviceInteractor(BaseInteractor):
     # === COMPUTED =========================================================== #
 
     @property
-    def angle(self):
-        delta_x = self.wxy[0] - self.cxy[0]
-        delta_y = self.wxy[1] - self.cxy[1]
+    def angle(self) -> float:
+        dx = self.wxy[0] - self.cxy[0]
+        dy = self.wxy[1] - self.cxy[1]
 
-        return cart2pol(delta_x, delta_y)[1]
+        _, angle = cart2pol(dx, dy)
+        return angle
 
-    def _calc_label_pos(self):
+    def _calc_label_pos(self) -> Tuple[float, float]:
         offset = 60
         angle = self.angle + 90
         dx, dy = pol2cart(offset, angle)
@@ -819,7 +818,7 @@ class BrainDeviceInteractor(BaseInteractor):
 
     # === EXPORT ============================================================= #
 
-    def get_params(self):
+    def get_params(self) -> dict:
         return {'label': self.label,
                 'id': self.id,
                 'cxy': self.cxy,
@@ -827,7 +826,7 @@ class BrainDeviceInteractor(BaseInteractor):
 
     # === INTERACTION ======================================================== #
 
-    def get_ind_under_point(self, event):
+    def get_ind_under_point(self, event) -> int:
         line = self.artists['line']
 
         xy = numpy.asarray(line.get_xydata())

@@ -6,5 +6,5 @@ class Plotter:
         self.fig = matplotlib.pyplot.Figure()
 
     @staticmethod
-    def show():
+    def show() -> None:
         matplotlib.pyplot.show()

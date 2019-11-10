@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, List
 
 import wx
 from PIL import Image
@@ -141,7 +141,7 @@ class DevicesInteractorsPanel(BaseInteractorsPanel):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
 
-    def SetInteractors(self, interactors: list) -> None:
+    def SetInteractors(self, interactors: List[dict]) -> None:
         self.interactors = []
         for interactor in interactors:
             args = {
@@ -154,7 +154,7 @@ class DevicesInteractorsPanel(BaseInteractorsPanel):
             artist = interactor['artist'](**args)
             self.interactors.append(artist)
 
-    def GetInteractors(self) -> list:
+    def GetInteractors(self) -> List[dict]:
         return [a.get_params() for a in self.interactors]
 
     def OnMouseMoved(self, event):

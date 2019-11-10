@@ -1,4 +1,5 @@
 import warnings
+from typing import Tuple
 
 import numpy
 import openslide
@@ -8,7 +9,7 @@ from PIL import Image
 from antilles.utils.io import DAO
 
 
-def get_screen_size():
+def get_screen_size() -> Tuple[int, int]:
     app = wx.App(False)
     size = wx.GetDisplaySize()
     del app
@@ -19,12 +20,12 @@ def get_screen_size():
 screen_size = get_screen_size()
 
 
-def get_slide_dims(path):
+def get_slide_dims(path: str) -> Tuple[int, int]:
     with openslide.OpenSlide(DAO.abs(path)) as obj:
         return obj.dimensions
 
 
-def get_mpp_from_openslide(obj):
+def get_mpp_from_openslide(obj) -> float:
     mpp_x = float(obj.properties[openslide.PROPERTY_NAME_MPP_X])
     mpp_y = float(obj.properties[openslide.PROPERTY_NAME_MPP_Y])
 
@@ -40,7 +41,7 @@ def get_mpp_from_openslide(obj):
     return mpp
 
 
-def calc_downsample_factor(dims):
+def calc_downsample_factor(dims: Tuple[int, int]) -> float:
     # area in which image is displayed is not quite as big as the screen
     screen_size_eff = [s * 0.75 for s in screen_size]
 
@@ -49,7 +50,7 @@ def calc_downsample_factor(dims):
                float(h) / float(screen_size_eff[1]))
 
 
-def get_thumbnail(path):
+def get_thumbnail(path: str) -> dict:
     try:
         with openslide.OpenSlide(DAO.abs(path)) as obj:
             dims = obj.dimensions

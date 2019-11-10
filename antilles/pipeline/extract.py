@@ -2,12 +2,14 @@ import json
 import logging
 from functools import reduce
 from os.path import join
+from typing import Tuple, Iterator, List
 
 import numpy
 import openslide
 import pandas
+from pandas import DataFrame
 
-from antilles.block import Field, Step
+from antilles.block import Field, Step, Block
 from antilles.pipeline.annotate import annotate_slides
 from antilles.project import Project
 from antilles.utils import upsert
@@ -16,7 +18,10 @@ from antilles.utils.io import DAO
 from antilles.utils.math import pol2cart
 
 
-def calc_bbox(dims, center, angle, **kwargs):
+def calc_bbox(dims: Tuple[float, float],
+              center: Tuple[int, int],
+              angle: float,
+              **kwargs) -> Tuple[Tuple[float, float], Tuple[float, float]]:
     width, height = dims
     c_x, c_y = center
     span = kwargs.get('span', 90.0)
@@ -62,7 +67,7 @@ def calc_bbox(dims, center, angle, **kwargs):
     return (min_x, min_y), (dx, dy)
 
 
-def get_extraction_sequence(settings):
+def get_extraction_sequence(settings: dict) -> Iterator[dict]:
     for key in ['samples', 'devices', 'coords', 'angles']:
         if key not in settings.keys():
             raise ValueError(f'Key not found: {key}')
@@ -101,7 +106,7 @@ def get_extraction_sequence(settings):
                    'params': params}
 
 
-def microns2pixels(dct, keys, mpp):
+def microns2pixels(dct: dict, keys: List[str], mpp: float):
     for key in keys:
         try:
             dct[key] /= mpp
@@ -110,7 +115,7 @@ def microns2pixels(dct, keys, mpp):
     return dct
 
 
-def get_filepath(step, fields, output_order):
+def get_filepath(step: Step, fields: dict, output_order: List[str]) -> str:
     for key in ['project', 'block', 'panel', 'level', 'sample', 'drug']:
         if key not in fields.keys():
             raise ValueError(f'Key not found: {key}')
@@ -130,7 +135,7 @@ def get_filepath(step, fields, output_order):
     return filepath
 
 
-def extract_image(src, dst, params):
+def extract_image(src: str, dst: str, params: dict) -> dict:
     with openslide.OpenSlide(DAO.abs(src)) as obj:
         dims = obj.dimensions
         mpp = get_mpp_from_openslide(obj)
@@ -154,7 +159,7 @@ def extract_image(src, dst, params):
             'dims': size}
 
 
-def upsert_translate(df, using):
+def upsert_translate(df: DataFrame, using: DataFrame):
     cols = ['project', 'block', 'panel', 'level', 'sample', 'drug']
 
     df_old = df.copy()
@@ -177,10 +182,10 @@ def upsert_translate(df, using):
 
 
 class Extractor:
-    def __init__(self, project_name, block_name):
+    def __init__(self, project: Project, block: Block):
         self.log = logging.getLogger(__name__)
-        self.project = Project(project_name)
-        self.block = self.project.block(block_name)
+        self.project = project
+        self.block = block
 
     def adjust(self):
         coords = self.block.get(Field.COORDS_SLIDES)
@@ -191,12 +196,12 @@ class Extractor:
         self.block.save(coords, Field.COORDS_SLIDES)
         self.block.save(angles, Field.ANGLES_COARSE)
 
-    def extract(self, params):
+    def extract(self, params: dict):
         self.log.info('Extracting wedges ... ')
         self.extract_wedges(params['wedge'])
         self.log.info('Extracting wedges complete.')
 
-    def extract_wedges(self, params):
+    def extract_wedges(self, params: dict):
         self.block.clean()
 
         # regions_prev = self.block.get(Field.COORDS_BOW)
@@ -205,7 +210,7 @@ class Extractor:
 
         self.block.save(regions, Field.COORDS_BOW)
 
-    def _extract_wedges(self, params):
+    def _extract_wedges(self, params: dict) -> DataFrame:
         output_order = self.project.config['output_order']
 
         settings = {

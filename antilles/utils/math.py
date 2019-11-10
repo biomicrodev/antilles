@@ -1,9 +1,10 @@
 import math
+from typing import Tuple, Iterator
 
 import numpy
 
 
-def cart2pol(x, y, in_deg=True):
+def cart2pol(x: float, y: float, in_deg: bool = True) -> Tuple[float, float]:
     r = math.sqrt(pow(x, 2) + pow(y, 2))
     theta = math.atan2(y, x)
 
@@ -13,7 +14,8 @@ def cart2pol(x, y, in_deg=True):
     return r, theta
 
 
-def pol2cart(r, theta, in_degs=True):
+def pol2cart(r: float, theta: float, in_degs: bool = True) \
+        -> Tuple[float, float]:
     if in_degs:
         theta = (theta + 180) % 360 - 180
         theta = math.radians(theta)
@@ -26,13 +28,14 @@ def pol2cart(r, theta, in_degs=True):
     return x, y
 
 
-def make_even_grid(n):
+def make_even_grid(n: int) -> Tuple[int, int]:
     nx = int(math.ceil(math.sqrt(n)))
     ny = int(math.ceil(float(n) / float(nx)))
     return nx, ny
 
 
-def init_arrow_coords(dims, n):
+def init_arrow_coords(dims: Tuple[int, int], n: int) \
+        -> Iterator[Tuple[int, int]]:
     w, h = dims
     nx, ny = make_even_grid(n)
 
@@ -44,4 +47,4 @@ def init_arrow_coords(dims, n):
     xx, yy = xx[:n], yy[:n]
     xx, yy = (int(round(x)) for x in xx), (int(round(y)) for y in yy)
 
-    return list(zip(xx, yy))
+    return zip(xx, yy)

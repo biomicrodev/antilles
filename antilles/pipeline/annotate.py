@@ -9,8 +9,11 @@ for modifying the annotations. The actual data access is done by the Extractor
 class.
 """
 import os
+from typing import Tuple, List
 
 import wx
+from PIL import Image
+from pandas import DataFrame
 from pubsub import pub
 
 from antilles.gui.interactors import device2interactor
@@ -19,13 +22,13 @@ from antilles.utils.image import get_thumbnail
 from antilles.utils.math import pol2cart, cart2pol
 
 
-def add_dxy(x, y, l, a):
+def add_dxy(x: float, y: float, l: float, a: float) -> Tuple[float, float]:
     dx, dy = pol2cart(l, a)
     dx, dy = int(round(dx)), int(round(dy))
     return x + dx, y + dy
 
 
-def get_interactors(coords, angles):
+def get_interactors(coords: DataFrame, angles: DataFrame) -> List[dict]:
     device = 'ARROW'  # simplest indicator of direction
     assert (device in device2interactor.keys())
 
@@ -45,12 +48,12 @@ def get_interactors(coords, angles):
 
 
 class SlideArrowAnnotationModel:
-    def __init__(self, coords, angles):
+    def __init__(self, coords: DataFrame, angles: DataFrame):
         self.coords = coords
         self.angles = angles
         self.relpaths = sorted(list(set(self.coords['relpath'].unique())))
 
-    def get(self, index):
+    def get(self, index: int) -> dict:
         relpath = self.relpaths[index]
         inds = self.coords['relpath'] == relpath
         coords = self.coords.loc[inds, ['sample', 'center_x', 'center_y']]
@@ -67,7 +70,7 @@ class SlideArrowAnnotationModel:
             'interactors': interactors
         }
 
-    def set(self, slide):
+    def set(self, slide: dict) -> None:
         relpath = slide['id']
         interactors = slide['interactors']
 
@@ -85,7 +88,7 @@ class SlideArrowAnnotationModel:
             self.angles.loc[ind_s, ['angle']] = angle
 
     @property
-    def n_slides(self):
+    def n_slides(self) -> int:
         return len(self.relpaths)
 
 
@@ -151,7 +154,7 @@ class SlideArrowAnnotationView(wx.Frame):
         self.OnSave(event)
         self.Close()
 
-    def UpdateSequenceButtons(self, first, last):
+    def UpdateSequenceButtons(self, first: bool, last: bool):
         if first:
             self.buttonP.prevBtn.Disable()
         else:
@@ -164,13 +167,13 @@ class SlideArrowAnnotationView(wx.Frame):
 
     # === GUI ACTIONS ======================================================== #
 
-    def SetImageTitle(self, title):
+    def SetImageTitle(self, title: str):
         self.imageAnnotationP.title.SetLabel(title)
 
     def SetInteractors(self, *args, **kwargs):
         self.imageAnnotationP.interactorsP.SetInteractors(*args, **kwargs)
 
-    def SetImage(self, image):
+    def SetImage(self, image: Image):
         self.imageAnnotationP.interactorsP.Render(image)
 
     def Draw(self):
@@ -190,7 +193,7 @@ class SlideArrowAnnotationPresenter:
         self.view.Show()
 
     @staticmethod
-    def angles_to_coords(interactors):
+    def angles_to_coords(interactors: List[dict]):
         length = 100  # pixels
 
         for interactor in interactors:
@@ -202,7 +205,7 @@ class SlideArrowAnnotationPresenter:
         return interactors
 
     @staticmethod
-    def coords_to_angle(interactors):
+    def coords_to_angle(interactors: List[dict]):
         for interactor in interactors:
             cx, cy = interactor['cxy']
             wx, wy = interactor.pop('wxy')
@@ -212,7 +215,7 @@ class SlideArrowAnnotationPresenter:
         return interactors
 
     @staticmethod
-    def scale(interactors, factor):
+    def scale(interactors: List[dict], factor: float):
         for interactor in interactors:
             cx, cy = interactor['cxy']
             cx, cy = cx * factor, cy * factor
@@ -220,13 +223,13 @@ class SlideArrowAnnotationPresenter:
             interactor['cxy'] = cx, cy
         return interactors
 
-    def is_first(self):
+    def is_first(self) -> bool:
         return self.state['ind'] == 0
 
-    def is_last(self):
+    def is_last(self) -> bool:
         return self.state['ind'] == (self.model.n_slides - 1)
 
-    def render(self):
+    def render(self) -> None:
         ind = self.state['ind']
         slide = self.model.get(ind)
         thumbnail = get_thumbnail(slide['relpath'])
