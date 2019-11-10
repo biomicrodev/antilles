@@ -17,6 +17,9 @@ class Field(Enum):
     COORDS_IMAGES = "COORDS_IMAGES"
     COORDS_BOW = "COORDS_BOW"
 
+    CELLPROFILER_INPUT = ""
+    CELLPROFILER_OUTPUT = ""
+
 
 class Step(Enum):
     S0 = "0_slides"

@@ -8,12 +8,12 @@ from matplotlib.patches import FancyArrowPatch, Arc
 
 from antilles.utils.math import cart2pol, pol2cart
 
-K_UP = "w"
-K_DOWN = "s"
-K_LEFT = "a"
-K_RIGHT = "d"
-ARROW_KEYS = K_UP + K_DOWN + K_LEFT + K_RIGHT
-epsilon = 20  # pixels
+K_UP: str = "w"
+K_DOWN: str = "s"
+K_LEFT: str = "a"
+K_RIGHT: str = "d"
+ARROW_KEYS: str = K_UP + K_DOWN + K_LEFT + K_RIGHT
+epsilon: int = 20  # pixels
 
 for key, value in rcParams.items():
     if key.startswith("keymap"):
@@ -24,9 +24,9 @@ for key, value in rcParams.items():
                 pass
 
 
-def move(key, x, y):
+def move(key: str, x: int, y: int) -> Tuple[int, int]:
     # image coordinates are relative to an origin that's placed at the top left
-    stride = 1
+    stride: int = 1
 
     if key == K_UP:
         y -= stride
@@ -88,7 +88,7 @@ class ArrowInteractor(BaseInteractor):
         self.init_label()
 
     def init_artists(self):
-        main_arrow_props = {
+        main_arrow_props: Dict[str, object] = {
             "alpha": 0.5 if self.active else 0.2,
             "animated": True,
             "arrowstyle": "->,head_length=10,head_width=7",
@@ -96,7 +96,7 @@ class ArrowInteractor(BaseInteractor):
             "linestyle": "solid",
         }
 
-        line_props = {
+        line_props: Dict[str, object] = {
             "alpha": 0.7 if self.active else 0.3,
             "animated": True,
             "color": self.color,
@@ -121,7 +121,7 @@ class ArrowInteractor(BaseInteractor):
         self.axes.add_line(line)
 
     def init_label(self):
-        label_props = {
+        label_props: Dict[str, object] = {
             "alpha": 0.7 if self.active else 0.2,
             "animated": True,
             "family": "sans-serif",
@@ -167,7 +167,7 @@ class ArrowInteractor(BaseInteractor):
 
     # === INTERACTION ======================================================== #
 
-    def get_ind_under_point(self, event):
+    def get_ind_under_point(self, event: MouseEvent):
         line = self.artists["line"]
 
         xy = numpy.asarray(line.get_xydata())
@@ -281,7 +281,7 @@ class BowInteractor(BaseInteractor):
         self.init_artists()
 
     def init_artists(self):
-        main_arrow_props = {
+        main_arrow_props: Dict[str, object] = {
             "alpha": 0.5 if self.active else 0.2,
             "animated": True,
             "arrowstyle": "->,head_length=10,head_width=7",
@@ -289,7 +289,7 @@ class BowInteractor(BaseInteractor):
             "linestyle": "solid",
         }
 
-        line_props = {
+        line_props: Dict[str, object] = {
             "alpha": 0.7 if self.active else 0.3,
             "animated": True,
             "color": self.color,
@@ -299,14 +299,14 @@ class BowInteractor(BaseInteractor):
             "markersize": 8,
         }
 
-        arc_props = {
+        arc_props: Dict[str, object] = {
             "alpha": 0.5 if self.active else 0.3,
             "animated": True,
             "color": self.color,
             "linestyle": "dashed",
         }
 
-        prong_props = {
+        prong_props: Dict[str, object] = {
             "alpha": 0.5 if self.active else 0.2,
             "animated": True,
             "color": self.color,

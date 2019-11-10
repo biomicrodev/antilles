@@ -1,13 +1,15 @@
 # coding=utf-8
 import math
-from typing import Tuple, List
+from typing import Tuple, List, Dict
 
-import cellprofiler.object
-import cellprofiler.setting
+import cellprofiler.gui as cpg
+import cellprofiler.module as cpm
+import cellprofiler.object as cpo
+import cellprofiler.pipeline as cpp
+import cellprofiler.setting as cps
+import cellprofiler.workspace as cpw
 import numpy
 import skimage.color
-from cellprofiler.workspace import Workspace
-from cellprofiler.module import Module
 
 __author__ = "Sebastian Ahn"
 __doc__ = """\
@@ -18,21 +20,13 @@ Create a mask object of the *wedge*, a region of tissue that has experienced
 biologically active substances diffused from a single well, or several nearby wells. The
 wedge mask is obtained from reasonable assumptions regarding drug diffusion.
 
-The wedge is projected normal to the surface of the void left by the device.
-
-Create a mask object of the *wedge*, a region of tissue (usually in a tumor) 
-that has experienced bioactive substances (e.g. anticancer drugs, cytokines, 
-mRNA) diffused from a single well. The wedge mask may be obtained directly from 
-explicit measurement of imageable drug, or using reasonable parameters based on 
-physico-chemical assumptions regarding its dose response effects, diffusion, 
-solubility, pKa, etc. The wedge is projected normal to the surface of the void 
-left by the device. The thickness of the wedge is preset to a distance 
-indicating the extent of drug release based on the duration of diffusion. The 
-span of the wedge is preset to disregard crosstalk from adjacent well effects.
+The wedge is projected normal to the surface of the void left by the device. The 
+thickness of the wedge is preset to a distance indicating the extent of drug release 
+based on the duration of diffusion. The span of the wedge is meant to disregard 
+crosstalk from adjacent well effects.
 
 The output of this module is a mask object that can be used by the MaskObjects 
-module to count objects of interest within the mask, such as stained and 
-counterstained cells
+module to count objects of interest within the mask.
 
 
 See also
@@ -92,17 +86,17 @@ def pol2cart(r: float, theta: float, in_degs: bool = True) -> Tuple[float, float
     return x, y
 
 
-def make_mask(
+def _make_mask(
     dims: Tuple[int, int],
     pos: Tuple[int, int],
     width: float,
     radius: float,
     th: float,
-    span: float,
+    hspan: float,
 ) -> numpy.ndarray:
     """
-    This function has been somewhat optimized, so make sure to time it before
-    making any changes.
+    This lower-level function has been somewhat optimized, so make sure to time it
+    before making any changes.
 
     Computations are done in radians to avoid calling numpy.degrees.
     """
@@ -110,8 +104,7 @@ def make_mask(
     x, y = pos
 
     th *= math.pi / 180
-    span *= math.pi / 180
-    hspan = span / 2
+    hspan *= math.pi / 180
 
     xx, yy = numpy.meshgrid(numpy.arange(w), numpy.arange(h))
     xx -= int(x)
@@ -132,207 +125,204 @@ def make_mask(
     return mask
 
 
-def make_wedge_mask_from_wedge_params(
-    params: dict, dims: Tuple[int, int]
-) -> numpy.ndarray:
-    microns_per_pixel = params["MPP"]
-    center_curvature = (params["CenterCurvatureX"], params["CenterCurvatureY"])
-    center_well = (params["CenterWellX"], params["CenterWellY"])
-    wedge_offset = params["Offset"] / microns_per_pixel  # to pixels
-    wedge_thickness = params["Thickness"] / microns_per_pixel
-    wedge_span = params["Span"]  # full span
+def make_mask(params: dict, dims: Tuple[int, int]) -> numpy.ndarray:
+    mpp = params["mpp"]
+    cx, cy = (params["center_x"], params["center_y"])
+    wx, wy = (params["well_x"], params["well_y"])
+    offset = params["offset"] / mpp  # to pixels
+    thickness = params["thickness"] / mpp  # to pixels
+    span = params["span"]
 
-    delta_x = center_well[0] - center_curvature[0]
-    delta_y = center_well[1] - center_curvature[1]
+    dx, dy = wx - cx, wy - cy
+    center_length, center_angle = cart2pol(dy, dx)
 
-    center_length, center_angle = cart2pol(delta_y, delta_x)
-
-    mask = make_mask(
+    mask = _make_mask(
         dims=dims,
-        pos=center_curvature,
-        radius=center_length + wedge_offset + wedge_thickness,
-        width=wedge_thickness,
+        pos=(cx, cy),
+        radius=center_length + offset + thickness,
+        width=thickness,
         th=center_angle,
-        span=wedge_span / 2,
+        hspan=span / 2,
     )
 
     return mask
 
 
-class MakeWedgeMask(Module):
+class MakeWedgeMask(cpm.Module):
     category = "JonasLab Custom"
     module_name = "MakeWedgeMask"
     variable_revision_number = 1
 
-    D_WEDGE = "Wedge"
-    WEDGE_MEASUREMENT_NAMES = [
-        "CenterCurvatureX",
-        "CenterCurvatureY",
-        "CenterWellX",
-        "CenterWellY",
-        "Thickness",
-        "Span",
-    ]
-    DEFAULT_WEDGE_COLOR = "green"
+    measurements = ["center_x", "center_y", "well_x", "well_y"]
 
-    def create_settings(self) -> None:
+    def __init__(self):
+        super().__init__()
+        self.wedge = {}
+
+    def create_settings(self):
         module_explanation = [
-            "Construct wedge from User-supplied parameters regarding the "
-            "area of drug influence around a well in a tumor. Outputs a binary "
-            "mask that can be used by the **MaskObject** module for scoring "
-            "the desired cell populations within the wedge."
+            """\
+            Construct wedge from User-supplied parameters regarding the area of drug 
+            influence around a well in tissue. Outputs a binary mask that can be used 
+            by the **MaskObject** module for scoring the desired cell populations 
+            within the wedge.
+            """
         ]
         self.set_notes([" ".join(module_explanation)])
 
-        self.image_name = cellprofiler.setting.ImageNameSubscriber(
+        image_name = cps.ImageNameSubscriber(
             text=u"Select image to visualize wedge on",
-            value=cellprofiler.setting.NONE,
+            value=cps.NONE,
             doc="""\
             Choose the image_name upon which a wedge constructed from the given
             parameters is laid. Can be either RGB or grayscale.""",
         )
 
-        self.wedge_mask_name = cellprofiler.setting.ObjectNameProvider(
+        mask_name = cps.ObjectNameProvider(
             text=u"Name the wedge mask",
             value="WedgeMask",
             doc="""Enter the name of the wedge mask.""",
         )
 
-        self.wedge_color = cellprofiler.setting.Color(
+        color = cps.Color(
             text=u"Select wedge outline color",
-            value=self.DEFAULT_WEDGE_COLOR,
+            value="green",
             doc="""The wedge is displayed in this color.""",
         )
 
-        self.offset = cellprofiler.setting.Float(
-            text=u"Enter distance of wedge from well (um)", value=0.0, doc=""""""
+        offset = cps.Float(
+            text=u"Enter distance of wedge from edge of well (um)",
+            value=0.0,
+            doc="""""",
         )
 
-        self.thickness = cellprofiler.setting.Float(
+        thickness = cps.Float(
             text=u"Enter thickness of wedge (um)", value=400.0, doc=""""""
         )
 
-        self.span = cellprofiler.setting.Float(
-            text=u"Enter span of wedge (in deg)", value=90.0, doc=""""""
-        )
+        span = cps.Float(text=u"Enter span of wedge (in deg)", value=90.0, doc="""""")
 
-        self.use_custom = cellprofiler.setting.Binary(
-            text=u"Use custom settings?", value=False, doc=""""""
-        )
+        use_custom = cps.Binary(text=u"Use custom settings?", value=False, doc="""""")
 
-    def settings(self) -> List:
-        settings = [
-            self.image_name,
-            self.wedge_mask_name,
-            self.wedge_color,
-            self.offset,
-            self.thickness,
-            self.span,
-            self.use_custom,
+        self.wedge = {
+            "image_name": image_name,
+            "mask_name": mask_name,
+            "color": color,
+            "offset": offset,
+            "thickness": thickness,
+            "span": span,
+            "use_custom": use_custom,
+        }
+
+    def settings(self) -> List[object]:
+        names = [
+            "image_name",
+            "mask_name",
+            "color",
+            "offset",
+            "thickness",
+            "span",
+            "use_custom",
         ]
+        return [self.wedge[name] for name in names]
 
-        return settings
+    def visible_settings(self) -> List[object]:
+        names = ["image_name", "mask_name", "color", "use_custom"]
+        if self.wedge["use_custom"].value:
+            names += ["offset", "thickness", "span"]
+        return [self.wedge[name] for name in names]
 
-    def visible_settings(self) -> List:
-        settings = [
-            self.image_name,
-            self.wedge_mask_name,
-            self.wedge_color,
-            self.use_custom,
-        ]
-
-        if self.use_custom.value:
-            settings += [self.offset, self.thickness, self.span]
-
-        return settings
-
-    def prepare_run(self, workspace: Workspace) -> bool:
-        # prepare wedge measurements
-        default_val = 0.0
-        for measurement_name in self.WEDGE_MEASUREMENT_NAMES:
+    def prepare_run(self, workspace: cpw.Workspace) -> bool:
+        init_val: float = 0.0
+        for name in self.measurements:
             workspace.measurements.add_measurement(
-                cellprofiler.measurement.IMAGE,
-                "_".join([self.D_WEDGE, measurement_name]),
-                default_val,
-                data_type=cellprofiler.measurement.COLTYPE_FLOAT,
+                object_name=cpm.IMAGE,
+                feature_name="Wedge_" + name,
+                data=init_val,
+                data_type=cpm.COLTYPE_FLOAT,
             )
 
         return True
 
-    def get_measurement_columns(self, pipeline) -> List:
+    def get_measurement_columns(self, pipeline: cpp.Pipeline) -> List:
         # add our own entry in the tree checkbox dialog
-        columns = []
-        for measurement_name in self.WEDGE_MEASUREMENT_NAMES:
-            columns += [
-                (
-                    cellprofiler.measurement.IMAGE,
-                    "_".join([self.D_WEDGE, measurement_name]),
-                    cellprofiler.measurement.COLTYPE_FLOAT,
-                )
-            ]
+        return [
+            (cpm.IMAGE, "Wedge_" + name, cpm.COLTYPE_FLOAT)
+            for name in self.measurements
+        ]
 
-        return columns
-
-    def run(self, workspace):
-        wedge_params = {}
-        for measurement_name in self.WEDGE_MEASUREMENT_NAMES:
+    def get_workspace_params(self, workspace: cpw.Workspace) -> Dict[str, object]:
+        m = {}
+        for name in self.measurements:
             measurement = workspace.measurements.get_current_measurement(
-                cellprofiler.measurement.IMAGE,
-                "_".join(["Metadata", self.D_WEDGE, measurement_name]),
+                cpm.IMAGE, "Metadata_Wedge_" + name
             )
+            m[name] = measurement
 
-            wedge_params[measurement_name] = measurement
-
-        wedge_params["Offset"] = self.offset.value
-        if self.use_custom.value:
-            wedge_params["Thickness"] = self.thickness.value
-            wedge_params["Span"] = self.span.value
-
-        wedge_params["MPP"] = workspace.measurements.get_current_measurement(
-            cellprofiler.measurement.IMAGE, "_".join(["Metadata", "MPP"])
+        m["mpp"] = workspace.measurements.get_current_measurement(
+            cpm.IMAGE, "Metadata_MPP"
         )
 
-        # store wedge mask
-        image_name = self.image_name.value
-        raw_image = workspace.image_set.get_image(image_name)
-        image_data = raw_image.pixel_data
+        return m
 
-        wedge_mask = make_wedge_mask_from_wedge_params(
-            wedge_params, image_data.shape[:2]
+    def get_user_params(self) -> Dict[str, object]:
+        m = {}
+        m["offset"] = self.wedge["thickness"].value
+        if self.wedge["use_custom"].value:
+            m["thickness"] = self.wedge["thickness"].value
+            m["span"] = self.wedge["span"].value
+        return m
+
+    def get_image(self, workspace: cpw.Workspace):
+        name = self.wedge["name"].value
+        image = workspace.image_set.get_image(name)
+        return image
+
+    def save_mask(self, workspace: cpw.Workspace, mask: numpy.ndarray):
+        mask_obj = cpo.Objects()
+        mask_obj.segmented = mask
+        workspace.object_set.add_objects(mask_obj, self.wedge["name"].value)
+
+    def merge_image_and_mask(
+        self, image: numpy.ndarray, mask: numpy.ndarray
+    ) -> numpy.ndarray:
+        alpha1 = 0.5
+        alpha2 = 0.5
+
+        color = tuple(c / 255.0 for c in self.wedge["color"].to_rgb())
+        color_mask = numpy.zeros_like(image)
+        color_mask[mask] = color
+
+        # painter's algorithm
+        mixed = (image * alpha1 + color_mask * alpha2 * (1.0 - alpha1)) / (
+            alpha1 + alpha2 * (1.0 - alpha1)
         )
+        return mixed
 
-        wedge_mask_obj = cellprofiler.object.Objects()
-        wedge_mask_obj.segmented = wedge_mask
-        workspace.object_set.add_objects(wedge_mask_obj, self.wedge_mask_name.value)
+    def run(self, workspace: cpw.Workspace):
+        params = {**self.get_workspace_params(workspace), **self.get_user_params()}
+        image = self.get_image(workspace)
+
+        dims = image.pixel_data.shape[:2]
+        mask = make_mask(params, dims)
+        self.save_mask(workspace, mask)
 
         if self.show_window:
             # data to be displayed; display_data needs to be json-serializable
             image_rgb = (
-                numpy.copy(image_data)
-                if raw_image.multichannel
-                else skimage.color.gray2rgb(image_data)
+                numpy.copy(image.pixel_data)
+                if image.multichannel
+                else skimage.color.gray2rgb(image.pixel_data)
             )
 
-            alpha1 = 0.5
-            alpha2 = 0.5
+            mixed_image = self.merge_image_and_mask(image_rgb, mask)
+            workspace.display_data.image = mixed_image
 
-            color = tuple(c / 255.0 for c in self.wedge_color.to_rgb())
-
-            color_mask = numpy.zeros_like(image_rgb)
-            color_mask[wedge_mask] = color
-
-            # painter's algorithm
-            mixed = (image_rgb * alpha1 + color_mask * alpha2 * (1.0 - alpha1)) / (
-                alpha1 + alpha2 * (1.0 - alpha1)
-            )
-
-            workspace.display_data.mixed = mixed
-
-    def display(self, workspace, figure):
+    def display(self, workspace: cpw.Workspace, figure: cpg.Figure):
         if self.show_window:
-            mixed = workspace.display_data.mixed
+            image = workspace.display_data.image
 
             figure.set_subplots((1, 1))
             figure.subplot_imshow_color(
-                0, 0, mixed, title="Wedge Mask", normalize=False
+                x=0, y=0, image=image, title="Wedge Mask", normalize=False
             )

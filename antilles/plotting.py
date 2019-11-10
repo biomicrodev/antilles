@@ -1,10 +1,10 @@
-import matplotlib.pyplot
+import matplotlib.pyplot as plt
 
 
 class Plotter:
     def __init__(self):
-        self.fig = matplotlib.pyplot.Figure()
+        self.fig: plt.Figure = plt.Figure()
 
     @staticmethod
     def show() -> None:
-        matplotlib.pyplot.show()
+        plt.show()

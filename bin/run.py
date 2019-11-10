@@ -1,6 +1,7 @@
 import logging.config
 from typing import Dict
 
+from antilles.block import Block
 from antilles.pipeline.adjust import Adjuster
 from antilles.pipeline.format import Formatter
 from antilles.pipeline.extract import Extractor
@@ -16,9 +17,9 @@ def main():
     project_name: str = "TEST"
     block_name: str = "BLK1"
 
-    step: int = 0
-    project = Project(project_name)
-    block = project.block(block_name)
+    step: int = 2
+    project: Project = Project(project_name)
+    block: Block = project.block(block_name)
 
     # === COARSE ADJUST & EXTRACT ==================================================== #
     if step == 0:

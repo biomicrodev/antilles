@@ -2,6 +2,8 @@ from typing import Tuple, List
 
 import wx
 from PIL import Image
+from matplotlib.axes import Axes
+from matplotlib.backend_bases import MouseEvent
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.figure import Figure
 
@@ -12,7 +14,7 @@ class ButtonPanel(wx.Panel):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
 
-        buttonSize = (70, 30)
+        buttonSize: Tuple[int, int] = (70, 30)
 
         self.prevBtn = wx.Button(self, label="Prev", size=buttonSize)
         self.prevBtn.Disable()
@@ -38,7 +40,7 @@ class BaseInteractorsPanel(wx.Panel):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
 
-        self.interactors = []
+        self.interactors: List = []
         self.factor = None
         self.image_id = None
         self.background = None
@@ -46,8 +48,8 @@ class BaseInteractorsPanel(wx.Panel):
         self.BuildUI()
 
     def BuildUI(self):
-        self.figure = Figure()
-        self.axes = self.figure.add_subplot(1, 1, 1)
+        self.figure: Figure = Figure()
+        self.axes: Axes = self.figure.add_subplot(1, 1, 1)
         self.axes.set_aspect("equal")
         self.canvas = FigureCanvas(self, id=wx.ID_ANY, figure=self.figure)
         self.figure.tight_layout()
@@ -63,7 +65,7 @@ class BaseInteractorsPanel(wx.Panel):
         self.canvas.mpl_connect("key_press_event", self.OnKeyPress)
         self.canvas.mpl_connect("key_release_event", self.OnKeyRelease)
 
-    def DrawCallback(self, event):
+    def DrawCallback(self, event: MouseEvent):
         self.background = self.canvas.copy_from_bbox(self.axes.bbox)
 
         for interactor in self.interactors:
@@ -71,7 +73,7 @@ class BaseInteractorsPanel(wx.Panel):
 
         self.canvas.blit(self.axes.bbox)
 
-    def OnClick(self, event):
+    def OnClick(self, event: MouseEvent):
         if event.inaxes != self.axes:
             return
         if event.inaxes.get_navigate_mode() is not None:
@@ -80,20 +82,20 @@ class BaseInteractorsPanel(wx.Panel):
         for interactor in self.interactors:
             interactor.button_press_callback(event)
 
-    def OnMouseButtonUp(self, event):
+    def OnMouseButtonUp(self, event: MouseEvent):
         if event.inaxes is not None and event.inaxes.get_navigate_mode() is not None:
             return
 
         for interactor in self.interactors:
             interactor.button_release_callback(event)
 
-    def OnMouseMoved(self, event):
+    def OnMouseMoved(self, event: MouseEvent):
         if event.inaxes != self.axes:
             return
 
         self.UpdateInteractors(event)
 
-    def OnKeyPress(self, event):
+    def OnKeyPress(self, event: MouseEvent):
         if event.inaxes != self.axes:
             return
         if event.inaxes.get_navigate_mode() is not None:
@@ -104,7 +106,7 @@ class BaseInteractorsPanel(wx.Panel):
 
         self.UpdateInteractors(event)
 
-    def OnKeyRelease(self, event):
+    def OnKeyRelease(self, event: MouseEvent):
         if event.inaxes != self.axes:
             return
         if event.inaxes.get_navigate_mode() is not None:
@@ -115,7 +117,7 @@ class BaseInteractorsPanel(wx.Panel):
 
         self.UpdateInteractors(event)
 
-    def UpdateInteractors(self, event):
+    def UpdateInteractors(self, event: MouseEvent):
         if self.background is not None:
             self.canvas.restore_region(self.background)
         else:
@@ -152,13 +154,13 @@ class DevicesInteractorsPanel(BaseInteractorsPanel):
     def GetInteractors(self) -> List[dict]:
         return [a.get_params() for a in self.interactors]
 
-    def OnMouseMoved(self, event):
+    def OnMouseMoved(self, event: MouseEvent):
         if event.button != 1:
             return
 
         super().OnMouseMoved(event)
 
-    def OnKeyPress(self, event):
+    def OnKeyPress(self, event: MouseEvent):
         super().OnKeyPress(event)
 
 
@@ -282,8 +284,8 @@ class MetadataPanel(wx.Panel):
         self.includeBtn.Bind(wx.EVT_BUTTON, self.OnInclude)
         self.excludeBtn.Bind(wx.EVT_BUTTON, self.OnExclude)
 
-    def OnInclude(self, event):
+    def OnInclude(self, event: MouseEvent):
         self.dictP.UpsertOne("include", True)
 
-    def OnExclude(self, event):
+    def OnExclude(self, event: MouseEvent):
         self.dictP.UpsertOne("include", False)
