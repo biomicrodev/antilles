@@ -4,8 +4,8 @@ import re
 from os.path import join
 from typing import Pattern, List, Any, Dict
 
-from antilles.block import Block
-from antilles.utils.io import DAO
+from .block import Block
+from .utils.io import DAO
 
 
 def validate(config: Dict[str, Any]):

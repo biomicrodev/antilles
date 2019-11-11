@@ -18,7 +18,7 @@ def main():
     project_name: str = "TEST"
     block_name: str = "BLK1"
 
-    step: int = 2
+    step: int = 1
     project: Project = Project(project_name)
     block: Block = project.block(block_name)
 

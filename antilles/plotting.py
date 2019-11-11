@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 
-from antilles.block import Block
-from antilles.project import Project
+from .block import Block
+from .project import Project
 
 
 class Plotter:

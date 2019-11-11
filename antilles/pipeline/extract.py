@@ -19,8 +19,8 @@ from antilles.utils.math import pol2cart
 
 
 def calc_bbox(
-    dims: Tuple[float, float], center: Tuple[int, int], angle: float, **kwargs
-) -> Tuple[Tuple[float, float], Tuple[float, float]]:
+    dims: Tuple[int, int], center: Tuple[int, int], angle: float, **kwargs
+) -> Tuple[Tuple[int, int], Tuple[int, int]]:
     width, height = dims
     c_x, c_y = center
     span = kwargs.get("span", 90.0)

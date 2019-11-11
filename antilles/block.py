@@ -5,10 +5,11 @@ from typing import List, Dict, Any
 
 import pandas
 
-from antilles.utils import upsert
-from antilles.utils.image import get_slide_dims
-from antilles.utils.io import DAO, get_sample_prefix
-from antilles.utils.math import init_arrow_coords
+from .slide import Slide
+from .utils import upsert
+from .utils.image import get_slide_dims
+from .utils.io import DAO, get_sample_prefix
+from .utils.math import init_arrow_coords
 
 
 class Field(Enum):
@@ -17,8 +18,8 @@ class Field(Enum):
     COORDS_IMAGES: str = "COORDS_IMAGES"
     COORDS_BOW: str = "COORDS_BOW"
 
-    CELLPROFILER_INPUT: str = ""
-    CELLPROFILER_OUTPUT: str = ""
+    CELLPROFILER_INPUT: str = "CELLPROFILER_INPUT"
+    CELLPROFILER_OUTPUT: str = "CELLPROFILER_OUTPUT"
 
 
 class Step(Enum):
@@ -98,16 +99,16 @@ def unpack(block: Dict[str, Any]) -> List[Dict[str, Any]]:
 
 
 def init_coords_slides(
-    slides: List[Dict[str, Any]], samples: List[Dict[str, Any]]
+    slides: List[Slide], samples: List[Dict[str, Any]]
 ) -> pandas.DataFrame:
     df = []
     for slide in slides:
-        dims = get_slide_dims(slide["relpath"])
+        dims = get_slide_dims(slide.relpath)
         coords = list(init_arrow_coords(dims, len(samples)))
         for i, sample in enumerate(samples):
             df.append(
                 {
-                    **slide,
+                    **slide.to_dict(),
                     **{
                         "sample": sample["name"],
                         "center_x": coords[i][0],
@@ -116,9 +117,10 @@ def init_coords_slides(
                 }
             )
 
-    df = pandas.DataFrame(df, columns=columns)
+    df = pandas.DataFrame.from_records(df, columns=columns)
     df = df.sort_values(by=columns_sort_by)
     df.index = range(len(df))
+    df["level"] = df["level"].astype(int)
     return df
 
 
@@ -164,7 +166,7 @@ class Block:
         return join(self.project.relpath, self.name)
 
     @property
-    def slides(self) -> List[Dict[str, Any]]:
+    def slides(self) -> List[Slide]:
         dirpath = join(self.relpath, Step.S0.value)
         regex = self.project.slide_regex
 
@@ -172,10 +174,8 @@ class Block:
         for filename in DAO.list_files(dirpath):
             match = regex.fullmatch(filename)
             if match:
-                slide = match.groupdict()
-                slide["relpath"] = join(dirpath, filename)
-                if "level" in slide.keys():
-                    slide["level"] = int(slide["level"])
+                slide = Slide(**match.groupdict())
+                slide.relpath = join(dirpath, filename)
                 slides.append(slide)
         return slides
 

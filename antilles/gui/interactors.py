@@ -56,19 +56,19 @@ class BaseInteractor:
         for artist in self.artists.values():
             self.axes.draw_artist(artist)
 
-    def button_press_callback(self, event: Event):
+    def button_press_callback(self, event: MouseEvent):
         raise NotImplemented
 
-    def button_release_callback(self, event: Event):
+    def button_release_callback(self, event: MouseEvent):
         raise NotImplemented
 
-    def motion_notify_callback(self, event: Event):
+    def motion_notify_callback(self, event: MouseEvent):
         raise NotImplemented
 
-    def key_press_event(self, event: Event):
+    def key_press_event(self, event: MouseEvent):
         raise NotImplemented
 
-    def key_release_event(self, event: Event):
+    def key_release_event(self, event: MouseEvent):
         raise NotImplemented
 
 
