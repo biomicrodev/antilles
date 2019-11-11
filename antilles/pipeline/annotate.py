@@ -9,7 +9,7 @@ for modifying the annotations. The actual data access is done by the Extractor
 class.
 """
 import os
-from typing import Tuple, List
+from typing import Tuple, List, Dict, Any
 
 import wx
 from PIL import Image
@@ -28,7 +28,7 @@ def add_dxy(x: float, y: float, l: float, a: float) -> Tuple[float, float]:
     return x + dx, y + dy
 
 
-def get_interactors(coords: DataFrame, angles: DataFrame) -> List[dict]:
+def get_interactors(coords: DataFrame, angles: DataFrame) -> List[Dict[str, Any]]:
     device = "ARROW"  # simplest indicator of direction
     assert device in device2interactor.keys()
 
@@ -55,7 +55,7 @@ class SlideArrowAnnotationModel:
         self.angles = angles
         self.relpaths = sorted(list(set(self.coords["relpath"].unique())))
 
-    def get(self, index: int) -> dict:
+    def get(self, index: int) -> Dict[str, Any]:
         relpath = self.relpaths[index]
         inds = self.coords["relpath"] == relpath
         coords = self.coords.loc[inds, ["sample", "center_x", "center_y"]]
@@ -73,7 +73,7 @@ class SlideArrowAnnotationModel:
             "interactors": interactors,
         }
 
-    def set(self, slide: dict) -> None:
+    def set(self, slide: Dict[str, Any]) -> None:
         relpath = slide["id"]
         interactors = slide["interactors"]
 
@@ -83,7 +83,7 @@ class SlideArrowAnnotationModel:
             angle = interactor["angle"]
 
             ind_c = (self.coords["relpath"] == relpath) & (
-                self.coords["sample"] == sample
+                    self.coords["sample"] == sample
             )
             self.coords.loc[ind_c, ["center_x"]] = cx
             self.coords.loc[ind_c, ["center_y"]] = cy
@@ -100,13 +100,13 @@ class SlideArrowAnnotationView(wx.Frame):
     def __init__(self):
         title = "Slide Annotation"
         frame_style = (
-            wx.MAXIMIZE_BOX
-            | wx.MINIMIZE_BOX
-            | wx.RESIZE_BORDER
-            | wx.SYSTEM_MENU
-            | wx.CAPTION
-            | wx.CLOSE_BOX
-            | wx.CLIP_CHILDREN
+                wx.MAXIMIZE_BOX
+                | wx.MINIMIZE_BOX
+                | wx.RESIZE_BORDER
+                | wx.SYSTEM_MENU
+                | wx.CAPTION
+                | wx.CLOSE_BOX
+                | wx.CLIP_CHILDREN
         )
         frame_size = 1500, 900  # width, height
 
@@ -201,7 +201,7 @@ class SlideArrowAnnotationPresenter:
         self.view.Show()
 
     @staticmethod
-    def angles_to_coords(interactors: List[dict]):
+    def angles_to_coords(interactors: List[Dict[str, Any]]):
         length = 100  # pixels
 
         for interactor in interactors:
@@ -213,7 +213,7 @@ class SlideArrowAnnotationPresenter:
         return interactors
 
     @staticmethod
-    def coords_to_angle(interactors: List[dict]):
+    def coords_to_angle(interactors: List[Dict[str, Any]]):
         for interactor in interactors:
             cx, cy = interactor["cxy"]
             wx, wy = interactor.pop("wxy")
@@ -223,7 +223,7 @@ class SlideArrowAnnotationPresenter:
         return interactors
 
     @staticmethod
-    def scale(interactors: List[dict], factor: float):
+    def scale(interactors: List[Dict[str, Any]], factor: float):
         for interactor in interactors:
             cx, cy = interactor["cxy"]
             cx, cy = cx * factor, cy * factor

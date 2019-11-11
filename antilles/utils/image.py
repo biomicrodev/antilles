@@ -1,5 +1,5 @@
 import warnings
-from typing import Tuple
+from typing import Tuple, Any, Dict
 
 import numpy
 import openslide
@@ -52,7 +52,7 @@ def calc_downsample_factor(dims: Tuple[int, int]) -> float:
     )
 
 
-def get_thumbnail(path: str) -> dict:
+def get_thumbnail(path: str) -> Dict[str, Any]:
     try:
         with openslide.OpenSlide(DAO.abs(path)) as obj:
             dims = obj.dimensions

@@ -1,7 +1,7 @@
 import logging
 from enum import Enum
 from os.path import join, dirname
-from typing import List
+from typing import List, Dict, Any
 
 import pandas
 
@@ -12,19 +12,19 @@ from antilles.utils.math import init_arrow_coords
 
 
 class Field(Enum):
-    ANGLES_COARSE = "ANGLES_COARSE"
-    COORDS_SLIDES = "COORDS_SLIDES"
-    COORDS_IMAGES = "COORDS_IMAGES"
-    COORDS_BOW = "COORDS_BOW"
+    ANGLES_COARSE: str = "ANGLES_COARSE"
+    COORDS_SLIDES: str = "COORDS_SLIDES"
+    COORDS_IMAGES: str = "COORDS_IMAGES"
+    COORDS_BOW: str = "COORDS_BOW"
 
-    CELLPROFILER_INPUT = ""
-    CELLPROFILER_OUTPUT = ""
+    CELLPROFILER_INPUT: str = ""
+    CELLPROFILER_OUTPUT: str = ""
 
 
 class Step(Enum):
-    S0 = "0_slides"
-    S1 = "1_regions"
-    S2 = "2_regions_{mode}"
+    S0: str = "0_slides"
+    S1: str = "1_regions"
+    S2: str = "2_regions_{mode}"
 
 
 columns = [
@@ -45,7 +45,7 @@ columns_upsert = {
 }
 
 
-def unpack(block: dict) -> List[dict]:
+def unpack(block: Dict[str, Any]) -> List[Dict[str, Any]]:
     samples = []
 
     b_samples = block["samples"]
@@ -97,7 +97,9 @@ def unpack(block: dict) -> List[dict]:
     return samples
 
 
-def init_coords_slides(slides: List[dict], samples: List[dict]) -> pandas.DataFrame:
+def init_coords_slides(
+    slides: List[Dict[str, Any]], samples: List[Dict[str, Any]]
+) -> pandas.DataFrame:
     df = []
     for slide in slides:
         dims = get_slide_dims(slide["relpath"])
@@ -120,7 +122,7 @@ def init_coords_slides(slides: List[dict], samples: List[dict]) -> pandas.DataFr
     return df
 
 
-def init_angles_coarse(samples: List[dict]) -> pandas.DataFrame:
+def init_angles_coarse(samples: List[Dict[str, Any]]) -> pandas.DataFrame:
     df = [{"sample": s["name"], "angle": -90} for s in samples]
     df = pandas.DataFrame(df, columns=["sample", "angle"])
     df.index = range(len(df))
@@ -139,7 +141,7 @@ def get_step_dir(step: Step, **kwargs) -> str:
 
 
 class Block:
-    def __init__(self, block: dict, project):
+    def __init__(self, block: Dict[str, Any], project):
         """
         A Block is a directory initially containing three subdirectories:
           1. 'annotations', containing csv files of where regions are
@@ -162,7 +164,7 @@ class Block:
         return join(self.project.relpath, self.name)
 
     @property
-    def slides(self) -> List[dict]:
+    def slides(self) -> List[Dict[str, Any]]:
         dirpath = join(self.relpath, Step.S0.value)
         regex = self.project.slide_regex
 
@@ -178,7 +180,7 @@ class Block:
         return slides
 
     @property
-    def images(self) -> List[dict]:
+    def images(self) -> List[Dict[str, Any]]:
         dirpath = join(self.relpath, "0_images")
         regex = self.project.image_regex
 

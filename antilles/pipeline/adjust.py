@@ -1,7 +1,7 @@
 import json
 import logging
 import os
-from typing import List
+from typing import List, Dict, Any
 
 import wx
 from PIL import Image
@@ -15,7 +15,7 @@ from antilles.project import Project
 from antilles.utils.image import get_thumbnail
 
 
-def get_interactors(region: dict):
+def get_interactors(region: Dict[str, Any]):
     device = "BOW"
     assert device in device2interactor.keys()
 
@@ -36,7 +36,7 @@ class RegionBowAnnotationModel:
         self.regions = regions
         self.relpaths = sorted(list(set(self.regions["relpath"])))
 
-    def get(self, index: int) -> dict:
+    def get(self, index: int) -> Dict[str, Any]:
         relpath = self.relpaths[index]
         ind = self.regions["relpath"] == relpath
         region = self.regions.loc[
@@ -56,7 +56,7 @@ class RegionBowAnnotationModel:
             "metadata": json.loads(region["metadata"].values[0]),
         }
 
-    def set(self, region: dict):
+    def set(self, region: Dict[str, Any]):
         ind = self.regions["relpath"] == region["id"]
         self.regions.loc[ind, ["metadata"]] = json.dumps(region["metadata"])
 
@@ -76,13 +76,13 @@ class RegionBowAnnotationView(wx.Frame):
     def __init__(self):
         title = "Bow Annotation"
         frame_style = (
-                wx.MAXIMIZE_BOX
-                | wx.MINIMIZE_BOX
-                | wx.RESIZE_BORDER
-                | wx.SYSTEM_MENU
-                | wx.CAPTION
-                | wx.CLOSE_BOX
-                | wx.CLIP_CHILDREN
+            wx.MAXIMIZE_BOX
+            | wx.MINIMIZE_BOX
+            | wx.RESIZE_BORDER
+            | wx.SYSTEM_MENU
+            | wx.CAPTION
+            | wx.CLOSE_BOX
+            | wx.CLIP_CHILDREN
         )
         frame_size = 1500, 900  # width, height
 
@@ -173,11 +173,11 @@ class RegionBowAnnotationView(wx.Frame):
     def SetImage(self, image: Image) -> None:
         self.imageAnnotationP.interactorsP.Render(image)
 
-    def SetAnnotations(self, annotations: dict) -> None:
+    def SetAnnotations(self, annotations: Dict[str, Any]) -> None:
         self.metadataP.dictP.Clear()
         self.metadataP.dictP.UpsertMany(annotations)
 
-    def GetAnnotations(self) -> dict:
+    def GetAnnotations(self) -> Dict[str, Any]:
         return self.metadataP.dictP.GetAll()
 
     def Draw(self) -> None:
@@ -195,7 +195,7 @@ class RegionBowAnnotationPresenter:
         self.view.Show()
 
     @staticmethod
-    def scale(interactors: list, factor: float) -> List[dict]:
+    def scale(interactors: list, factor: float) -> List[Dict[str, Any]]:
         for interactor in interactors:
             cx, cy = interactor["cxy"]
             cx, cy = cx * factor, cy * factor
@@ -242,7 +242,9 @@ class RegionBowAnnotationPresenter:
         self.view.UpdateSequenceButtons(first=self.is_first(), last=self.is_last())
         self.view.Draw()
 
-    def on_changed(self, interactors: list, metadata: dict, do_after: str = None):
+    def on_changed(
+        self, interactors: list, metadata: Dict[str, Any], do_after: str = None
+    ):
         interactors = self.scale(interactors, self.state["factor"])
         region = {
             "id": self.state["id"],

@@ -5,6 +5,7 @@ from antilles.block import Block
 from antilles.pipeline.adjust import Adjuster
 from antilles.pipeline.format import Formatter
 from antilles.pipeline.extract import Extractor
+from antilles.plotting import Plotter
 from antilles.project import Project
 from antilles.utils import profile
 
@@ -42,10 +43,15 @@ def main():
         adjuster = Adjuster(project, block)
         adjuster.run()
 
-    # === FORMAT ===================================================================== #
+    # === PRE-FORMAT ================================================================= #
     elif step == 2:
         formatter = Formatter(project, block)
         formatter.run()
+
+    # === VISUALIZE ================================================================== #
+    elif step == 3:
+        plotter = Plotter(project, block)
+        plotter.run()
 
 
 if __name__ == "__main__":

@@ -2,13 +2,13 @@ import json
 import logging
 import re
 from os.path import join
-from typing import Pattern, List
+from typing import Pattern, List, Any, Dict
 
 from antilles.block import Block
 from antilles.utils.io import DAO
 
 
-def validate(config: dict):
+def validate(config: Dict[str, Any]):
     # TODO: add deeper key-value pair checking
     keys = ["name", "slide_regex", "image_regex", "output_order", "blocks", "devices"]
     for key in keys:
@@ -49,7 +49,7 @@ class Project:
         return self.name
 
     @property
-    def config(self) -> dict:
+    def config(self) -> Dict[str, Any]:
         filepath = join(self.relpath, self.filename)
         with open(DAO.abs(filepath)) as file:
             config = json.load(file)

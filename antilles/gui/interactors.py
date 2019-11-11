@@ -1,4 +1,4 @@
-from typing import Tuple, Dict, Union
+from typing import Tuple, Dict, Union, Any
 
 import numpy
 from matplotlib import rcParams
@@ -88,7 +88,7 @@ class ArrowInteractor(BaseInteractor):
         self.init_label()
 
     def init_artists(self):
-        main_arrow_props: Dict[str, object] = {
+        main_arrow_props: Dict[str, Any] = {
             "alpha": 0.5 if self.active else 0.2,
             "animated": True,
             "arrowstyle": "->,head_length=10,head_width=7",
@@ -96,7 +96,7 @@ class ArrowInteractor(BaseInteractor):
             "linestyle": "solid",
         }
 
-        line_props: Dict[str, object] = {
+        line_props: Dict[str, Any] = {
             "alpha": 0.7 if self.active else 0.3,
             "animated": True,
             "color": self.color,
@@ -121,7 +121,7 @@ class ArrowInteractor(BaseInteractor):
         self.axes.add_line(line)
 
     def init_label(self):
-        label_props: Dict[str, object] = {
+        label_props: Dict[str, Any] = {
             "alpha": 0.7 if self.active else 0.2,
             "animated": True,
             "family": "sans-serif",
@@ -281,7 +281,7 @@ class BowInteractor(BaseInteractor):
         self.init_artists()
 
     def init_artists(self):
-        main_arrow_props: Dict[str, object] = {
+        main_arrow_props: Dict[str, Any] = {
             "alpha": 0.5 if self.active else 0.2,
             "animated": True,
             "arrowstyle": "->,head_length=10,head_width=7",
@@ -289,7 +289,7 @@ class BowInteractor(BaseInteractor):
             "linestyle": "solid",
         }
 
-        line_props: Dict[str, object] = {
+        line_props: Dict[str, Any] = {
             "alpha": 0.7 if self.active else 0.3,
             "animated": True,
             "color": self.color,
@@ -299,14 +299,14 @@ class BowInteractor(BaseInteractor):
             "markersize": 8,
         }
 
-        arc_props: Dict[str, object] = {
+        arc_props: Dict[str, Any] = {
             "alpha": 0.5 if self.active else 0.3,
             "animated": True,
             "color": self.color,
             "linestyle": "dashed",
         }
 
-        prong_props: Dict[str, object] = {
+        prong_props: Dict[str, Any] = {
             "alpha": 0.5 if self.active else 0.2,
             "animated": True,
             "color": self.color,
@@ -381,7 +381,7 @@ class BowInteractor(BaseInteractor):
 
     # === EXPORT ============================================================= #
 
-    def get_params(self) -> dict:
+    def get_params(self) -> Dict[str, Any]:
         return {"id": self.id, "cxy": self.cxy, "wxy": self.wxy}
 
     # === INTERACTION ======================================================== #
@@ -623,7 +623,7 @@ class RocketDeviceInteractor(BaseInteractor):
 
     # === EXPORT ============================================================= #
 
-    def get_params(self) -> dict:
+    def get_params(self) -> Dict[str, Any]:
         return {
             "label": self.label,
             "id": self.id,
@@ -841,7 +841,7 @@ class BrainDeviceInteractor(BaseInteractor):
 
     # === EXPORT ============================================================= #
 
-    def get_params(self) -> dict:
+    def get_params(self) -> Dict[str, Any]:
         return {
             "label": self.label,
             "id": self.id,

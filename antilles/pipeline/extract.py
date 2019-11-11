@@ -2,7 +2,7 @@ import json
 import logging
 from functools import reduce
 from os.path import join
-from typing import Tuple, Iterator, List
+from typing import Tuple, Iterator, List, Dict, Any
 
 import numpy
 import openslide
@@ -66,7 +66,7 @@ def calc_bbox(
     return (min_x, min_y), (dx, dy)
 
 
-def get_extraction_sequence(settings: dict) -> Iterator[dict]:
+def get_extraction_sequence(settings: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
     for key in ["samples", "devices", "coords", "angles"]:
         if key not in settings.keys():
             raise ValueError(f"Key not found: {key}")
@@ -105,7 +105,7 @@ def get_extraction_sequence(settings: dict) -> Iterator[dict]:
             yield {"src": src, "fields": fields, "params": params}
 
 
-def microns2pixels(dct: dict, keys: List[str], mpp: float):
+def microns2pixels(dct: Dict[str, Any], keys: List[str], mpp: float):
     for key in keys:
         try:
             dct[key] /= mpp
@@ -114,7 +114,7 @@ def microns2pixels(dct: dict, keys: List[str], mpp: float):
     return dct
 
 
-def get_filepath(step: Step, fields: dict, output_order: List[str]) -> str:
+def get_filepath(step: Step, fields: Dict[str, Any], output_order: List[str]) -> str:
     for key in ["project", "block", "panel", "level", "sample", "drug"]:
         if key not in fields.keys():
             raise ValueError(f"Key not found: {key}")
@@ -134,7 +134,7 @@ def get_filepath(step: Step, fields: dict, output_order: List[str]) -> str:
     return filepath
 
 
-def extract_image(src: str, dst: str, params: dict) -> dict:
+def extract_image(src: str, dst: str, params: Dict[str, Any]) -> Dict[str, Any]:
     with openslide.OpenSlide(DAO.abs(src)) as obj:
         dims = obj.dimensions
         mpp = get_mpp_from_openslide(obj)
@@ -192,12 +192,12 @@ class Extractor:
         self.block.save(coords, Field.COORDS_SLIDES)
         self.block.save(angles, Field.ANGLES_COARSE)
 
-    def extract(self, params: dict):
+    def extract(self, params: Dict[str, Any]):
         self.log.info("Extracting wedges ... ")
         self.extract_wedges(params["wedge"])
         self.log.info("Extracting wedges complete.")
 
-    def extract_wedges(self, params: dict):
+    def extract_wedges(self, params: Dict[str, Any]):
         self.block.clean()
 
         # regions_prev = self.block.get(Field.COORDS_BOW)
@@ -206,7 +206,7 @@ class Extractor:
 
         self.block.save(regions, Field.COORDS_BOW)
 
-    def _extract_wedges(self, params: dict) -> DataFrame:
+    def _extract_wedges(self, params: Dict[str, Any]) -> DataFrame:
         output_order = self.project.config["output_order"]
 
         settings = {

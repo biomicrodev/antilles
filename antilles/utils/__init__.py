@@ -1,7 +1,7 @@
 import logging
 import time
 from functools import reduce
-from typing import List, Iterator, Callable
+from typing import List, Iterator, Callable, Any
 
 import pandas
 from pandas import DataFrame
@@ -9,7 +9,7 @@ from pandas import DataFrame
 log = logging.getLogger(__name__)
 
 
-def flatten(l: Iterator[object]) -> Iterator[object]:
+def flatten(l: Iterator[Any]) -> Iterator[Any]:
     """
     Thanks to this StackOverflow answer: https://stackoverflow.com/a/10824420
     """

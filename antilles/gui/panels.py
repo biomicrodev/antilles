@@ -1,4 +1,4 @@
-from typing import Tuple, List
+from typing import Tuple, List, Any, Dict
 
 import wx
 from PIL import Image
@@ -138,7 +138,7 @@ class DevicesInteractorsPanel(BaseInteractorsPanel):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
 
-    def SetInteractors(self, interactors: List[dict]) -> None:
+    def SetInteractors(self, interactors: List[Dict[str, Any]]) -> None:
         self.interactors = []
         for interactor in interactors:
             args = {
@@ -151,7 +151,7 @@ class DevicesInteractorsPanel(BaseInteractorsPanel):
             artist = interactor["artist"](**args)
             self.interactors.append(artist)
 
-    def GetInteractors(self) -> List[dict]:
+    def GetInteractors(self) -> List[Dict[str, Any]]:
         return [a.get_params() for a in self.interactors]
 
     def OnMouseMoved(self, event: MouseEvent):
@@ -200,7 +200,7 @@ class DictionaryPanel(wx.Panel):
         sizer.Add(self.listCtrl, flag=wx.EXPAND | wx.ALL, proportion=1, border=10)
         self.SetSizer(sizer)
 
-    def UpsertOne(self, key: str, value: object) -> None:
+    def UpsertOne(self, key: str, value: Any) -> None:
         index = self.Where(key)
 
         v_type = type(value).__name__
@@ -213,11 +213,11 @@ class DictionaryPanel(wx.Panel):
             self.listCtrl.SetItem(count, 1, str(value))
             self.listCtrl.SetItem(count, 2, v_type)
 
-    def UpsertMany(self, dct: dict) -> None:
+    def UpsertMany(self, dct: Dict[str, Any]) -> None:
         for key, value in dct.items():
             self.UpsertOne(key, value)
 
-    def GetOne(self, key: str) -> object:
+    def GetOne(self, key: str) -> Any:
         index = self.Where(key)
         if index != -1:
             _, v = self.GetItemAt(index)
@@ -226,7 +226,7 @@ class DictionaryPanel(wx.Panel):
         else:
             raise IndexError
 
-    def GetAll(self) -> dict:
+    def GetAll(self) -> Dict[str, Any]:
         dct = dict()
 
         count = self.listCtrl.GetItemCount()
@@ -244,7 +244,7 @@ class DictionaryPanel(wx.Panel):
         index = next((i for i, k in enumerate(keys) if k == key), -1)
         return index
 
-    def GetItemAt(self, index: int) -> Tuple[str, object]:
+    def GetItemAt(self, index: int) -> Tuple[str, Any]:
         k = self.listCtrl.GetItem(itemIdx=index, col=0).GetText()
         v = self.listCtrl.GetItem(itemIdx=index, col=1).GetText()
         v_type = self.listCtrl.GetItem(itemIdx=index, col=2).GetText()

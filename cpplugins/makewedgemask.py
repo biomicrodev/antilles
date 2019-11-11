@@ -1,6 +1,5 @@
-# coding=utf-8
 import math
-from typing import Tuple, List, Dict
+from typing import Tuple, List, Dict, Union, Any
 
 import cellprofiler.gui as cpg
 import cellprofiler.module as cpm
@@ -86,13 +85,34 @@ def pol2cart(r: float, theta: float, in_degs: bool = True) -> Tuple[float, float
     return x, y
 
 
+def merge_image_and_mask(
+        image: numpy.ndarray,
+        mask: numpy.ndarray,
+        color: Tuple[Union[float, Any], ...] = None,
+):
+    if color is None:
+        color = (1.0, 1.0, 1.0)
+
+    alpha1 = 0.5
+    alpha2 = 0.5
+
+    color_mask = numpy.zeros_like(image)
+    color_mask[mask] = color
+
+    # painter's algorithm
+    mixed = (image * alpha1 + color_mask * alpha2 * (1.0 - alpha1)) / (
+            alpha1 + alpha2 * (1.0 - alpha1)
+    )
+    return mixed
+
+
 def _make_mask(
-    dims: Tuple[int, int],
-    pos: Tuple[int, int],
-    width: float,
-    radius: float,
-    th: float,
-    hspan: float,
+        dims: Tuple[int, int],
+        pos: Tuple[int, int],
+        width: float,
+        radius: float,
+        th: float,
+        hspan: float,
 ) -> numpy.ndarray:
     """
     This lower-level function has been somewhat optimized, so make sure to time it
@@ -116,16 +136,16 @@ def _make_mask(
     d2 = xx ** 2 + yy ** 2
     radius_small = (radius - width) ** 2
     mask = (
-        (radius_small <= d2)
-        & (radius ** 2 >= d2)
-        & (-hspan <= angle)
-        & (angle <= hspan)
+            (radius_small <= d2)
+            & (radius ** 2 >= d2)
+            & (-hspan <= angle)
+            & (angle <= hspan)
     )
 
     return mask
 
 
-def make_mask(params: dict, dims: Tuple[int, int]) -> numpy.ndarray:
+def make_mask(params: Dict[str, Any], dims: Tuple[int, int]) -> numpy.ndarray:
     mpp = params["mpp"]
     cx, cy = (params["center_x"], params["center_y"])
     wx, wy = (params["well_x"], params["well_y"])
@@ -264,8 +284,7 @@ class MakeWedgeMask(cpm.Module):
         return m
 
     def get_user_params(self) -> Dict[str, object]:
-        m = {}
-        m["offset"] = self.wedge["thickness"].value
+        m = {"offset": self.wedge["thickness"].value}
         if self.wedge["use_custom"].value:
             m["thickness"] = self.wedge["thickness"].value
             m["span"] = self.wedge["span"].value
@@ -282,7 +301,7 @@ class MakeWedgeMask(cpm.Module):
         workspace.object_set.add_objects(mask_obj, self.wedge["name"].value)
 
     def merge_image_and_mask(
-        self, image: numpy.ndarray, mask: numpy.ndarray
+            self, image: numpy.ndarray, mask: numpy.ndarray
     ) -> numpy.ndarray:
         alpha1 = 0.5
         alpha2 = 0.5
@@ -293,9 +312,12 @@ class MakeWedgeMask(cpm.Module):
 
         # painter's algorithm
         mixed = (image * alpha1 + color_mask * alpha2 * (1.0 - alpha1)) / (
-            alpha1 + alpha2 * (1.0 - alpha1)
+                alpha1 + alpha2 * (1.0 - alpha1)
         )
         return mixed
+
+    def get_color(self) -> Tuple[Union[float, Any], ...]:
+        return tuple(c / 255.0 for c in self.wedge["color"].to_rgb())
 
     def run(self, workspace: cpw.Workspace):
         params = {**self.get_workspace_params(workspace), **self.get_user_params()}
@@ -313,7 +335,8 @@ class MakeWedgeMask(cpm.Module):
                 else skimage.color.gray2rgb(image.pixel_data)
             )
 
-            mixed_image = self.merge_image_and_mask(image_rgb, mask)
+            color = self.get_color()
+            mixed_image = merge_image_and_mask(image_rgb, mask, color)
             workspace.display_data.image = mixed_image
 
     def display(self, workspace: cpw.Workspace, figure: cpg.Figure):
