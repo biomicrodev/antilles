@@ -18,7 +18,7 @@ def main():
     project_name: str = "TEST"
     block_name: str = "BLK1"
 
-    step: int = 1
+    step: int = 3
     project: Project = Project(project_name)
     block: Block = project.block(block_name)
 
@@ -36,7 +36,7 @@ def main():
         # compute a reasonable buffer around the region of interest.
         extractor = Extractor(project, block)
         extractor.adjust()
-        # extractor.extract(params)
+        extractor.extract(params)
 
     # === FINE ADJUST ================================================================ #
     elif step == 1:

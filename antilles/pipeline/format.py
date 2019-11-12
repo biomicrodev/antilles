@@ -18,6 +18,5 @@ class Formatter:
 
         regions["relpath"].apply(lambda x: DAO.abs(x))
         regions.rename(columns={"relpath": "abspath"}, inplace=True)
-        print(regions)
 
         self.block.save(regions, Field.CELLPROFILER_INPUT)

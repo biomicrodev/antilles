@@ -12,7 +12,6 @@ from pandas import DataFrame
 from antilles.block import Field, Step, Block
 from antilles.pipeline.annotate import annotate_slides
 from antilles.project import Project
-from antilles.utils import upsert
 from antilles.utils.image import get_mpp_from_openslide
 from antilles.utils.io import DAO
 from antilles.utils.math import pol2cart
@@ -155,24 +154,34 @@ def extract_image(src: str, dst: str, params: Dict[str, Any]) -> Dict[str, Any]:
     return {"oxy": origin, "cxy": (cx, cy), "wxy": (wx, wy), "dims": size}
 
 
-def upsert_translate(df: DataFrame, using: DataFrame):
+def update_translate(df: DataFrame, using: DataFrame):
+    buffer = 5
+
     cols = ["project", "block", "panel", "level", "sample", "drug"]
-
-    df_old = df.copy()
-    df = upsert(df, using, cols)
-
     for i, row in df.iterrows():
-        ind = (row[col] == df_old[col] for col in cols)
+        ind = (row[col] == using[col] for col in cols)
         ind = reduce((lambda x, y: x & y), ind)
-        df_row = df[ind]
+        using_row = using[ind]
 
-        if len(df_row) == 1:
-            diff_x = int(df.loc[i, ["origin_x"]]) - int(df_row["origin_x"])
-            diff_y = int(df.loc[i, ["origin_y"]]) - int(df_row["origin_y"])
-            df.loc[i, ["center_x"]] = int(df_row["center_x"]) - diff_x
-            df.loc[i, ["center_y"]] = int(df_row["center_y"]) - diff_y
-            df.loc[i, ["well_x"]] = int(df_row["well_x"]) - diff_x
-            df.loc[i, ["well_y"]] = int(df_row["well_y"]) - diff_y
+        if len(using_row) == 1:
+            oxy_old = using_row["origin_x"].values[0], using_row["origin_y"].values[0]
+            cxy_old = using_row["center_x"].values[0], using_row["center_y"].values[0]
+            wxy_old = using_row["well_x"].values[0], using_row["well_y"].values[0]
+
+            oxy_new = row["origin_x"], row["origin_y"]
+            diff_x = oxy_new[0] - oxy_old[0]
+            diff_y = oxy_new[1] - oxy_old[1]
+
+            cxy_new = cxy_old[0] - diff_x, cxy_old[1] - diff_y
+            wxy_new = wxy_old[0] - diff_x, wxy_old[1] - diff_y
+            cxy_new = max(cxy_new[0], buffer), max(cxy_new[1], buffer)
+            wxy_new = max(wxy_new[0], buffer), max(wxy_new[1], buffer)
+
+            df.loc[i, ["center_x"]] = cxy_new[0]
+            df.loc[i, ["center_y"]] = cxy_new[1]
+            df.loc[i, ["well_x"]] = wxy_new[0]
+            df.loc[i, ["well_y"]] = wxy_new[1]
+            df.loc[i, ["metadata"]] = using_row["metadata"].values[0]
 
     return df
 
@@ -200,9 +209,10 @@ class Extractor:
     def extract_wedges(self, params: Dict[str, Any]):
         self.block.clean()
 
-        # regions_prev = self.block.get(Field.COORDS_BOW)
+        regions_prev = self.block.get(Field.COORDS_BOW)
         regions = self._extract_wedges(params)
-        # regions = upsert_translate(regions, using=regions_prev)
+        regions = update_translate(regions, using=regions_prev)
+        pandas.set_option("display.max_columns", 100)
 
         self.block.save(regions, Field.COORDS_BOW)
 

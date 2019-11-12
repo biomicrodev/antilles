@@ -3,7 +3,7 @@ from typing import Tuple, Dict, Union, Any
 import numpy
 from matplotlib import rcParams
 from matplotlib.axes import Axes
-from matplotlib.backend_bases import Event, MouseEvent
+from matplotlib.backend_bases import MouseEvent
 from matplotlib.patches import FancyArrowPatch, Arc
 
 from antilles.utils.math import cart2pol, pol2cart

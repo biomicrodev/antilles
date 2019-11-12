@@ -2,12 +2,15 @@ from typing import Union, Dict
 
 
 class Slide:
-    def __init__(self, **kwargs):
-        self.__project: str = kwargs.get("project")
-        self.__block: str = kwargs.get("block")
-        self.__panel: str = kwargs.get("panel")
-        self.__level: int = kwargs.get("level")
-        self.__relpath: str = kwargs.get("relpath", None)
+    def __init__(
+        self, project: str, block: str, panel: str, level: int, relpath: str = None
+    ):
+        self.project: str = project
+        self.block: str = block
+        self.panel: str = panel
+        self.level: int = level
+
+        self.relpath: str = relpath
 
     @property
     def project(self) -> str:
