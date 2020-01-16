@@ -4,7 +4,6 @@ from functools import reduce
 from typing import List, Iterator, Callable, Any
 
 import pandas
-from pandas import DataFrame
 
 log = logging.getLogger(__name__)
 
@@ -21,7 +20,9 @@ def flatten(l: Iterator[Any]) -> Iterator[Any]:
             yield i
 
 
-def upsert(update: DataFrame, using: DataFrame, cols: List[str]):
+def upsert(
+    update: pandas.DataFrame, using: pandas.DataFrame, cols: List[str]
+) -> pandas.DataFrame:
     indices = map(lambda x: ~update[x].isin(using[x]), cols)
     indices = reduce((lambda x, y: x | y), indices)
 

@@ -1,6 +1,7 @@
 import json
 import logging
 import re
+import warnings
 from os.path import join
 from typing import Pattern, List, Any, Dict
 
@@ -10,7 +11,7 @@ from .utils.io import DAO
 
 def validate(config: Dict[str, Any]):
     # TODO: add deeper key-value pair checking
-    keys = ["name", "slide_regex", "image_regex", "output_order", "blocks", "devices"]
+    keys = ["name", "image_regex", "output_order", "blocks", "devices"]
     for key in keys:
         if key not in config.keys():
             raise ValueError(f"{key} not in project.json!")
@@ -34,7 +35,7 @@ class Project:
         block_names_json = [b["name"] for b in self.config["blocks"]]
 
         if set(block_names_fs) != set(block_names_json):
-            raise ValueError(
+            warnings.warn(
                 "Blocks in file system and project.json do not match!\n"
                 f'File system: {", ".join(block_names_fs)}\n'
                 f'JSON: {", ".join(block_names_json)}'
@@ -59,11 +60,6 @@ class Project:
     @property
     def image_regex(self) -> Pattern:
         regex = self.config["image_regex"]
-        return re.compile(regex)
-
-    @property
-    def slide_regex(self) -> Pattern:
-        regex = self.config["slide_regex"]
         return re.compile(regex)
 
     @property

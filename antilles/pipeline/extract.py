@@ -151,7 +151,7 @@ def extract_image(src: str, dst: str, params: Dict[str, Any]) -> Dict[str, Any]:
     dx, dy = pol2cart(r_init, params["angle"])
     wx, wy = int(round(cx + dx)), int(round(cy + dy))
 
-    return {"oxy": origin, "cxy": (cx, cy), "wxy": (wx, wy), "dims": size}
+    return {"oxy": origin, "cxy": (cx, cy), "wxy": (wx, wy), "dims": size, "mpp": mpp}
 
 
 def update_translate(df: DataFrame, using: DataFrame):
@@ -201,22 +201,18 @@ class Extractor:
         self.block.save(coords, Field.COORDS_SLIDES)
         self.block.save(angles, Field.ANGLES_COARSE)
 
-    def extract(self, params: Dict[str, Any]):
+    def extract(self, params: Dict[str, Any]) -> None:
         self.log.info("Extracting wedges ... ")
-        self.extract_wedges(params["wedge"])
-        self.log.info("Extracting wedges complete.")
-
-    def extract_wedges(self, params: Dict[str, Any]):
         self.block.clean()
 
         regions_prev = self.block.get(Field.COORDS_BOW)
-        regions = self._extract_wedges(params)
+        regions = self.extract_wedges(params["wedge"])
         regions = update_translate(regions, using=regions_prev)
-        pandas.set_option("display.max_columns", 100)
 
         self.block.save(regions, Field.COORDS_BOW)
+        self.log.info("Extracting wedges complete.")
 
-    def _extract_wedges(self, params: Dict[str, Any]) -> DataFrame:
+    def extract_wedges(self, params: Dict[str, Any]) -> DataFrame:
         output_order = self.project.config["output_order"]
 
         settings = {
@@ -231,21 +227,22 @@ class Extractor:
         for region in regions_to_extract:
             src = region["src"]
             dst = get_filepath(Step.S1, region["fields"], output_order)
-            coords = extract_image(src, dst, {**params, **region["params"]})
+            props = extract_image(src, dst, {**params, **region["params"]})
 
             regions.append(
                 {
                     **region["fields"],
                     **{
                         "relpath": dst,
-                        "origin_x": coords["oxy"][0],
-                        "origin_y": coords["oxy"][1],
-                        "center_x": coords["cxy"][0],
-                        "center_y": coords["cxy"][1],
-                        "well_x": coords["wxy"][0],
-                        "well_y": coords["wxy"][1],
-                        "width": coords["dims"][0],
-                        "height": coords["dims"][1],
+                        "origin_x": props["oxy"][0],
+                        "origin_y": props["oxy"][1],
+                        "center_x": props["cxy"][0],
+                        "center_y": props["cxy"][1],
+                        "well_x": props["wxy"][0],
+                        "well_y": props["wxy"][1],
+                        "mpp": props["mpp"],
+                        "width": props["dims"][0],
+                        "height": props["dims"][1],
                         "metadata": json.dumps({}),
                     },
                 }
@@ -265,6 +262,7 @@ class Extractor:
             "center_y",
             "well_x",
             "well_y",
+            "mpp",
             "metadata",
         ]
         regions = pandas.DataFrame(regions, columns=columns)

@@ -13,13 +13,13 @@ from .utils.math import init_arrow_coords
 
 
 class Field(Enum):
-    ANGLES_COARSE: str = "ANGLES_COARSE"
-    COORDS_SLIDES: str = "COORDS_SLIDES"
-    COORDS_IMAGES: str = "COORDS_IMAGES"
-    COORDS_BOW: str = "COORDS_BOW"
+    ANGLES_COARSE = "ANGLES_COARSE"
+    COORDS_SLIDES = "COORDS_SLIDES"
+    COORDS_IMAGES = "COORDS_IMAGES"
+    COORDS_BOW = "COORDS_BOW"
 
-    CELLPROFILER_INPUT: str = "CELLPROFILER_INPUT"
-    CELLPROFILER_OUTPUT: str = "CELLPROFILER_OUTPUT"
+    CELLPROFILER_INPUT = "CELLPROFILER_INPUT"
+    CELLPROFILER_OUTPUT = "CELLPROFILER_OUTPUT"
 
 
 class Step(Enum):
@@ -168,7 +168,7 @@ class Block:
     @property
     def slides(self) -> List[Slide]:
         dirpath = join(self.relpath, Step.S0.value)
-        regex = self.project.slide_regex
+        regex = self.project.image_regex
 
         slides = []
         for filename in DAO.list_files(dirpath):
@@ -224,8 +224,31 @@ class Block:
                 return df_init
 
         elif field == Field.COORDS_BOW:
-            df = DAO.read_csv(filepath)
-            return df
+            df_init = pandas.DataFrame(
+                columns=[
+                    "relpath",
+                    "project",
+                    "block",
+                    "panel",
+                    "level",
+                    "sample",
+                    "drug",
+                    "origin_x",
+                    "origin_y",
+                    "center_x",
+                    "center_y",
+                    "well_x",
+                    "well_y",
+                    "mpp",
+                    "metadata",
+                ]
+            )
+            if DAO.is_file(filepath):
+                df = DAO.read_csv(filepath)
+                # df = upsert(df_init, using=df, cols=columns_upsert[field])
+                return df
+            else:
+                return df_init
 
         else:
             raise RuntimeError(f"Unknown field {field.name}!")

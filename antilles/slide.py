@@ -17,7 +17,7 @@ class Slide:
         return self.__project
 
     @project.setter
-    def project(self, name: str):
+    def project(self, name: str) -> None:
         self.__project = name
 
     @property
@@ -25,7 +25,7 @@ class Slide:
         return self.__block
 
     @block.setter
-    def block(self, name: str):
+    def block(self, name: str) -> None:
         self.__block = name
 
     @property
@@ -33,7 +33,7 @@ class Slide:
         return self.__panel
 
     @panel.setter
-    def panel(self, s: str):
+    def panel(self, s: str) -> None:
         self.__panel = s
 
     @property
@@ -41,7 +41,7 @@ class Slide:
         return self.__level
 
     @level.setter
-    def level(self, l: Union[int, str]):
+    def level(self, l: Union[int, str]) -> None:
         self.__level = int(l)
 
     @property
@@ -49,7 +49,7 @@ class Slide:
         return self.__relpath
 
     @relpath.setter
-    def relpath(self, s: str):
+    def relpath(self, s: str) -> None:
         self.__relpath = s
 
     def to_dict(self) -> Dict[str, Union[str, int]]:

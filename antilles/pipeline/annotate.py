@@ -11,9 +11,9 @@ class.
 import os
 from typing import Tuple, List, Dict, Any
 
+import pandas
 import wx
 from PIL import Image
-from pandas import DataFrame
 from pubsub import pub
 
 from antilles.gui.interactors import device2interactor
@@ -28,7 +28,9 @@ def add_dxy(x: float, y: float, l: float, a: float) -> Tuple[float, float]:
     return x + dx, y + dy
 
 
-def get_interactors(coords: DataFrame, angles: DataFrame) -> List[Dict[str, Any]]:
+def get_interactors(
+    coords: pandas.DataFrame, angles: pandas.DataFrame
+) -> List[Dict[str, Any]]:
     device = "ARROW"  # simplest indicator of direction
     assert device in device2interactor.keys()
 
@@ -50,10 +52,10 @@ def get_interactors(coords: DataFrame, angles: DataFrame) -> List[Dict[str, Any]
 
 
 class SlideArrowAnnotationModel:
-    def __init__(self, coords: DataFrame, angles: DataFrame):
+    def __init__(self, coords: pandas.DataFrame, angles: pandas.DataFrame):
         self.coords = coords
         self.angles = angles
-        self.relpaths = sorted(list(set(self.coords["relpath"].unique())))
+        self.relpaths = self.coords["relpath"].unique()
 
     def get(self, index: int) -> Dict[str, Any]:
         relpath = self.relpaths[index]
@@ -61,9 +63,7 @@ class SlideArrowAnnotationModel:
         coords = self.coords.loc[inds, ["sample", "center_x", "center_y"]]
         angles = self.angles.to_dict("records")
 
-        title = (
-            f"Slide {index + 1}/{len(self.relpaths)}: " f"{os.path.basename(relpath)}"
-        )
+        title = f"Slide {index + 1}/{len(self.relpaths)}: {os.path.basename(relpath)}"
         interactors = get_interactors(coords, angles)
 
         return {
@@ -83,7 +83,7 @@ class SlideArrowAnnotationModel:
             angle = interactor["angle"]
 
             ind_c = (self.coords["relpath"] == relpath) & (
-                    self.coords["sample"] == sample
+                self.coords["sample"] == sample
             )
             self.coords.loc[ind_c, ["center_x"]] = cx
             self.coords.loc[ind_c, ["center_y"]] = cy
@@ -100,13 +100,13 @@ class SlideArrowAnnotationView(wx.Frame):
     def __init__(self):
         title = "Slide Annotation"
         frame_style = (
-                wx.MAXIMIZE_BOX
-                | wx.MINIMIZE_BOX
-                | wx.RESIZE_BORDER
-                | wx.SYSTEM_MENU
-                | wx.CAPTION
-                | wx.CLOSE_BOX
-                | wx.CLIP_CHILDREN
+            wx.MAXIMIZE_BOX
+            | wx.MINIMIZE_BOX
+            | wx.RESIZE_BORDER
+            | wx.SYSTEM_MENU
+            | wx.CAPTION
+            | wx.CLOSE_BOX
+            | wx.CLIP_CHILDREN
         )
         frame_size = 1500, 900  # width, height
 
