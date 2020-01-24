@@ -63,7 +63,7 @@ class SlideArrowAnnotationModel:
         coords = self.coords.loc[inds, ["sample", "center_x", "center_y"]]
         angles = self.angles.to_dict("records")
 
-        title = f"Slide {index + 1}/{len(self.relpaths)}: {os.path.basename(relpath)}"
+        title = f"WholeSlideImage {index + 1}/{len(self.relpaths)}: {os.path.basename(relpath)}"
         interactors = get_interactors(coords, angles)
 
         return {
@@ -98,7 +98,7 @@ class SlideArrowAnnotationModel:
 
 class SlideArrowAnnotationView(wx.Frame):
     def __init__(self):
-        title = "Slide Annotation"
+        title = "WholeSlideImage Annotation"
         frame_style = (
             wx.MAXIMIZE_BOX
             | wx.MINIMIZE_BOX

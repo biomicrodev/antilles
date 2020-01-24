@@ -1,7 +1,7 @@
 from typing import Union, Dict
 
 
-class Slide:
+class WholeSlideImage:
     def __init__(
         self, project: str, block: str, panel: str, level: int, relpath: str = None
     ):

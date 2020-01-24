@@ -7,7 +7,7 @@ from typing import List, Dict, Any
 import pandas
 from PIL import Image
 
-from .slide import Slide
+from .slide import WholeSlideImage
 from .utils import upsert
 from .utils.image import get_slide_dims
 from .utils.io import DAO, get_sample_prefix
@@ -101,7 +101,7 @@ def unpack(block: Dict[str, Any]) -> List[Dict[str, Any]]:
 
 
 def init_coords_slides(
-        slides: List[Slide], samples: List[Dict[str, Any]]
+    slides: List[WholeSlideImage], samples: List[Dict[str, Any]]
 ) -> pandas.DataFrame:
     df = []
     for slide in slides:
@@ -204,7 +204,7 @@ class Block:
         return join(self.project.relpath, self.name)
 
     @property
-    def images(self) -> List[Slide]:
+    def images(self) -> List[WholeSlideImage]:
         dirpath = join(self.relpath, Step.S0.value)
         regex = self.project.image_regex
 
@@ -212,7 +212,7 @@ class Block:
         for filename in DAO.list_files(dirpath):
             match = regex.fullmatch(filename)
             if match:
-                image = Slide(**match.groupdict())
+                image = WholeSlideImage(**match.groupdict())
                 image.relpath = join(dirpath, filename)
                 images.append(image)
         return images
