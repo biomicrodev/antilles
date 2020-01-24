@@ -1,9 +1,11 @@
+import json
 import logging
 from enum import Enum
-from os.path import join, dirname
+from os.path import join, dirname, basename
 from typing import List, Dict, Any
 
 import pandas
+from PIL import Image
 
 from .slide import Slide
 from .utils import upsert
@@ -23,9 +25,9 @@ class Field(Enum):
 
 
 class Step(Enum):
-    S0: str = "0_slides"
-    S1: str = "1_regions"
-    S2: str = "2_regions_{mode}"
+    S0 = "0_slides"
+    S1 = "1_regions"
+    S2 = "2_regions_{mode}"
 
 
 columns = [
@@ -99,7 +101,7 @@ def unpack(block: Dict[str, Any]) -> List[Dict[str, Any]]:
 
 
 def init_coords_slides(
-    slides: List[Slide], samples: List[Dict[str, Any]]
+        slides: List[Slide], samples: List[Dict[str, Any]]
 ) -> pandas.DataFrame:
     df = []
     for slide in slides:
@@ -131,6 +133,42 @@ def init_angles_coarse(samples: List[Dict[str, Any]]) -> pandas.DataFrame:
     return df
 
 
+def init_coords_bows(regions: List[Dict[str, Any]]) -> pandas.DataFrame:
+    columns = [
+        "relpath",
+        "project",
+        "block",
+        "panel",
+        "level",
+        "sample",
+        "drug",
+        "origin_x",
+        "origin_y",
+        "center_x",
+        "center_y",
+        "well_x",
+        "well_y",
+        "mpp",
+        "metadata",
+    ]
+
+    for region in regions:
+        with Image.open(DAO.abs(region["relpath"])) as obj:
+            x, y = obj.size
+        region["origin_x"] = 0
+        region["origin_y"] = 0
+        region["center_x"] = int(round(x / 2))
+        region["center_y"] = int(round(y / 2))
+        region["well_x"] = int(round(x / 2 + x / 10))
+        region["well_y"] = int(round(y / 2))
+        region["mpp"] = 0
+        region["metadata"] = json.dumps({})
+
+    df = pandas.DataFrame(regions, columns=columns)
+    df = df.sort_values(by=["project", "block", "panel", "level", "sample", "drug"])
+    return df
+
+
 def get_step_dir(step: Step, **kwargs) -> str:
     assert step.name in Step.__members__.keys()
     if step == Step.S1:
@@ -147,8 +185,8 @@ class Block:
         """
         A Block is a directory initially containing three subdirectories:
           1. 'annotations', containing csv files of where regions are
-          2. '0_slides', containing slides.
-          3. '0_images', containing images.
+          2. '0_images', containing whole-slide images.
+          3. '0_regions', containing regions.
 
         This class manages access to the three items above.
         """
@@ -166,36 +204,37 @@ class Block:
         return join(self.project.relpath, self.name)
 
     @property
-    def slides(self) -> List[Slide]:
+    def images(self) -> List[Slide]:
         dirpath = join(self.relpath, Step.S0.value)
-        regex = self.project.image_regex
-
-        slides = []
-        for filename in DAO.list_files(dirpath):
-            match = regex.fullmatch(filename)
-            if match:
-                slide = Slide(**match.groupdict())
-                slide.relpath = join(dirpath, filename)
-                slides.append(slide)
-        return slides
-
-    @property
-    def images(self) -> List[Dict[str, Any]]:
-        dirpath = join(self.relpath, "0_images")
         regex = self.project.image_regex
 
         images = []
         for filename in DAO.list_files(dirpath):
             match = regex.fullmatch(filename)
             if match:
+                image = Slide(**match.groupdict())
+                image.relpath = join(dirpath, filename)
+                images.append(image)
+        return images
+
+    @property
+    def regions(self) -> List[Dict[str, Any]]:
+        dirpath = join(self.relpath, "0_regions")
+        regex = self.project.region_regex
+
+        images = []
+        for relpath in DAO.list_files_recursively(dirpath):
+            filename = basename(relpath)
+            match = regex.fullmatch(filename)
+            if match:
                 image = match.groupdict()
-                image["relpath"] = join(dirpath, filename)
+                image["relpath"] = relpath
                 images.append(image)
         return images
 
     def init(self, field: Field) -> pandas.DataFrame:
         if field == Field.COORDS_SLIDES:
-            return init_coords_slides(self.slides, self.samples)
+            return init_coords_slides(self.images, self.samples)
         elif field == Field.ANGLES_COARSE:
             return init_angles_coarse(self.samples)
         else:
@@ -206,7 +245,7 @@ class Block:
         filepath = join(self.relpath, filename)
 
         if field == Field.COORDS_SLIDES:
-            df_init = init_coords_slides(self.slides, self.samples)
+            df_init = init_coords_slides(self.images, self.samples)
             if DAO.is_file(filepath):
                 df = DAO.read_csv(filepath)
                 df = upsert(df_init, using=df, cols=columns_upsert[field])
@@ -224,25 +263,7 @@ class Block:
                 return df_init
 
         elif field == Field.COORDS_BOW:
-            df_init = pandas.DataFrame(
-                columns=[
-                    "relpath",
-                    "project",
-                    "block",
-                    "panel",
-                    "level",
-                    "sample",
-                    "drug",
-                    "origin_x",
-                    "origin_y",
-                    "center_x",
-                    "center_y",
-                    "well_x",
-                    "well_y",
-                    "mpp",
-                    "metadata",
-                ]
-            )
+            df_init = init_coords_bows(self.regions)
             if DAO.is_file(filepath):
                 df = DAO.read_csv(filepath)
                 # df = upsert(df_init, using=df, cols=columns_upsert[field])

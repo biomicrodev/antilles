@@ -13,9 +13,9 @@ log = logging.getLogger(__name__)
 @profile(log=log)
 def main():
     project_name = "HUMANIZED"
-    block_name = "BLK2"
+    block_name = "BLK1"
 
-    step = 3
+    step = 2
     project = Project(project_name)
     block = project.block(block_name)
 

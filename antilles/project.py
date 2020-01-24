@@ -14,7 +14,7 @@ def validate(config: Dict[str, Any]):
     keys = ["name", "image_regex", "output_order", "blocks", "devices"]
     for key in keys:
         if key not in config.keys():
-            raise ValueError(f"{key} not in project.json!")
+            warnings.warn(f"{key} not in project.json!")
 
 
 class Project:
@@ -60,6 +60,11 @@ class Project:
     @property
     def image_regex(self) -> Pattern:
         regex = self.config["image_regex"]
+        return re.compile(regex)
+
+    @property
+    def region_regex(self) -> Pattern:
+        regex = self.config['region_regex']
         return re.compile(regex)
 
     @property
