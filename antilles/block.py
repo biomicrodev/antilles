@@ -7,11 +7,11 @@ from typing import List, Dict, Any
 import pandas
 from PIL import Image
 
-from .slide import WholeSlideImage
 from .utils import upsert
 from .utils.image import get_slide_dims
 from .utils.io import DAO, get_sample_prefix
 from .utils.math import init_arrow_coords
+from .wholeslideimage import WholeSlideImage
 
 
 class Field(Enum):
@@ -36,13 +36,14 @@ columns = [
     "block",
     "level",
     "sample",
+    "cohorts",
     "panel",
     "center_x",
     "center_y",
 ]
 columns_sort_by = ["block", "level", "sample", "panel"]
 columns_upsert = {
-    Field.COORDS_SLIDES: ["project", "block", "panel", "level", "sample"],
+    Field.COORDS_SLIDES: ["project", "block", "panel", "level", "sample", "cohorts"],
     Field.ANGLES_COARSE: ["sample"],
     Field.COORDS_BOW: [],
 }
@@ -56,9 +57,7 @@ def unpack(block: Dict[str, Any]) -> List[Dict[str, Any]]:
         if "device" not in block.keys():
             raise ValueError("Device not specified for block!")
 
-        cohorts = None
-        if "cohorts" in block.keys():
-            cohorts = block["cohorts"]
+        cohorts = block.get("cohorts", None)
 
         for s in range(b_samples):
             samples.append(
@@ -71,7 +70,7 @@ def unpack(block: Dict[str, Any]) -> List[Dict[str, Any]]:
 
     elif isinstance(b_samples, list):
         device = block.get("device", None)
-        cohorts = block.get("cohorts", None)
+        block_cohorts = block.get("cohorts", None)
 
         for s in b_samples:
             if isinstance(s, dict):
@@ -79,6 +78,12 @@ def unpack(block: Dict[str, Any]) -> List[Dict[str, Any]]:
                     raise ValueError("Sample name not specified!")
                 if device is None and "device" not in s.keys():
                     raise ValueError("Device not specified!")
+                sample_cohorts = s.get("cohorts", None)
+                cohorts = sample_cohorts or block_cohorts
+                if cohorts is None:
+                    raise ValueError(
+                        f"Cohorts must be specified for sample {s['name']}!"
+                    )
 
                 samples.append(
                     {
@@ -92,7 +97,7 @@ def unpack(block: Dict[str, Any]) -> List[Dict[str, Any]]:
                 if device is None:
                     raise ValueError("Device not specified!")
 
-                samples.append({"name": s, "device": device, "cohorts": cohorts})
+                samples.append({"name": s, "device": device, "cohorts": block_cohorts})
 
             else:
                 raise ValueError("Unknown sample type!")
@@ -112,7 +117,8 @@ def init_coords_slides(
                 {
                     **slide.to_dict(),
                     **{
-                        "sample": sample["name"],
+                        "sample": str(sample["name"]),
+                        "cohorts": json.dumps(sample["cohorts"]),
                         "center_x": coords[i][0],
                         "center_y": coords[i][1],
                     },
@@ -127,7 +133,7 @@ def init_coords_slides(
 
 
 def init_angles_coarse(samples: List[Dict[str, Any]]) -> pandas.DataFrame:
-    df = [{"sample": s["name"], "angle": -90} for s in samples]
+    df = [{"sample": s["name"], "angle": -90.0} for s in samples]
     df = pandas.DataFrame(df, columns=["sample", "angle"])
     df.index = range(len(df))
     return df
@@ -141,6 +147,7 @@ def init_coords_bows(regions: List[Dict[str, Any]]) -> pandas.DataFrame:
         "panel",
         "level",
         "sample",
+        "cohorts",
         "drug",
         "origin_x",
         "origin_y",
@@ -248,6 +255,7 @@ class Block:
             df_init = init_coords_slides(self.images, self.samples)
             if DAO.is_file(filepath):
                 df = DAO.read_csv(filepath)
+                df["sample"] = df["sample"].astype(str)
                 df = upsert(df_init, using=df, cols=columns_upsert[field])
                 return df
             else:
@@ -257,15 +265,37 @@ class Block:
             df_init = init_angles_coarse(self.samples)
             if DAO.is_file(filepath):
                 df = DAO.read_csv(filepath)
+                df["sample"] = df["sample"].astype(str)
                 df = upsert(df_init, using=df, cols=columns_upsert[field])
                 return df
             else:
                 return df_init
 
         elif field == Field.COORDS_BOW:
-            df_init = init_coords_bows(self.regions)
+            # df_init = init_coords_bows(self.regions)
+            df_init = pandas.DataFrame(
+                columns=[
+                    "relpath",
+                    "project",
+                    "block",
+                    "panel",
+                    "level",
+                    "sample",
+                    "cohorts",
+                    "drug",
+                    "origin_x",
+                    "origin_y",
+                    "center_x",
+                    "center_y",
+                    "well_x",
+                    "well_y",
+                    "mpp",
+                    "metadata",
+                ]
+            )
             if DAO.is_file(filepath):
                 df = DAO.read_csv(filepath)
+                df["sample"] = df["sample"].astype(str)
                 # df = upsert(df_init, using=df, cols=columns_upsert[field])
                 return df
             else:

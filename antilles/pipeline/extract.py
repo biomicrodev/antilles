@@ -93,6 +93,7 @@ def get_extraction_sequence(settings: Dict[str, Any]) -> Iterator[Dict[str, Any]
                 "panel": region["panel"],
                 "level": region["level"],
                 "sample": region["sample"],
+                "cohorts": region["cohorts"],
                 "drug": well["drug"],
             }
 
@@ -255,6 +256,7 @@ class Extractor:
             "panel",
             "level",
             "sample",
+            "cohorts",
             "drug",
             "origin_x",
             "origin_y",

@@ -65,7 +65,11 @@ class DAO:
     @staticmethod
     def list_files_recursively(path: str) -> List[str]:
         abspath = DAO.abs(path)
-        return [DAO.rel(os.path.join(root, file)) for root, _, files in os.walk(abspath) for file in files]
+        return [
+            DAO.rel(os.path.join(root, file))
+            for root, _, files in os.walk(abspath)
+            for file in files
+        ]
 
     @staticmethod
     def is_file(path: str) -> bool:

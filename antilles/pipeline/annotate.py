@@ -36,7 +36,7 @@ def get_interactors(
 
     interactors = []
     for i, (sample, c_x, c_y) in coords.iterrows():
-        angle = next(a["angle"] for a in angles if a["sample"] == sample)
+        angle = next(a["angle"] for a in angles if a["sample"] == str(sample))
 
         interactors.append(
             {
