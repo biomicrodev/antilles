@@ -16,8 +16,8 @@ from .wholeslideimage import WholeSlideImage
 
 class Field(Enum):
     ANGLES_COARSE = "ANGLES_COARSE"
-    IMAGES_COORDS = "IMAGES_COORDS"  # IMAGES_COORDS
-    IMAGES_COORDS_BOW = "IMAGES_COORDS_BOW"  # IMAGES_COORDS_BOW
+    IMAGES_COORDS = "IMAGES_COORDS"
+    IMAGES_COORDS_BOW = "IMAGES_COORDS_BOW"
     CELLPROFILER_IMAGE_INPUT = "CELLPROFILER_IMAGE_INPUT"  # CELLPROFILER_INPUT
 
     REGIONS_COORDS_BOW = "REGIONS_COORDS_BOW"  # REGIONS_COORDS_BOW
@@ -43,9 +43,10 @@ columns = [
 ]
 columns_sort_by = ["block", "level", "sample", "panel"]
 columns_upsert = {
-    Field.IMAGES_COORDS: ["project", "block", "panel", "level", "sample", "cohorts"],
+    Field.IMAGES_COORDS: ["project", "block", "panel", "level", "sample"],
     Field.ANGLES_COARSE: ["sample"],
     Field.IMAGES_COORDS_BOW: [],
+    Field.REGIONS_COORDS_BOW: ["project", "block", "panel", "level", "sample", "drug"],
 }
 
 
@@ -139,7 +140,9 @@ def init_angles_coarse(samples: List[Dict[str, Any]]) -> pandas.DataFrame:
     return df
 
 
-def init_coords_bows(regions: List[Dict[str, Any]]) -> pandas.DataFrame:
+def init_coords_bows(
+    regions: List[Dict[str, Any]], samples: List[Dict[str, Any]]
+) -> pandas.DataFrame:
     columns = [
         "relpath",
         "project",
@@ -168,8 +171,11 @@ def init_coords_bows(regions: List[Dict[str, Any]]) -> pandas.DataFrame:
         region["center_y"] = int(round(y / 2))
         region["well_x"] = int(round(x / 2 + x / 10))
         region["well_y"] = int(round(y / 2))
-        region["mpp"] = 0
+        region["mpp"] = 0.0
         region["metadata"] = json.dumps({})
+
+        cohorts = next(s["cohorts"] for s in samples if s["name"] == region["sample"])
+        region["cohorts"] = json.dumps(cohorts)
 
     df = pandas.DataFrame(regions, columns=columns)
     df = df.sort_values(by=["project", "block", "panel", "level", "sample", "drug"])
@@ -301,11 +307,14 @@ class Block:
                 return df_init
 
         elif field == Field.REGIONS_COORDS_BOW:
-            df_init = init_coords_bows(self.regions)
+            df_init = init_coords_bows(self.regions, self.samples)
             if DAO.is_file(filepath):
                 df = DAO.read_csv(filepath)
                 df["sample"] = df["sample"].astype(str)
-                df = upsert(df_init, using=df, cols=columns_upsert[field])
+
+                df = upsert(
+                    df_init, using=df, cols=["relpath"]
+                )  # columns_upsert[field])
                 return df
             else:
                 return df_init
