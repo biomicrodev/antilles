@@ -272,7 +272,6 @@ class Block:
                 return df_init
 
         elif field == Field.IMAGES_COORDS_BOW:
-            # df_init = init_coords_bows(self.regions)
             df_init = pandas.DataFrame(
                 columns=[
                     "relpath",
@@ -296,7 +295,17 @@ class Block:
             if DAO.is_file(filepath):
                 df = DAO.read_csv(filepath)
                 df["sample"] = df["sample"].astype(str)
-                # df = upsert(df_init, using=df, cols=columns_upsert[field])
+                df = upsert(df_init, using=df, cols=columns_upsert[field])
+                return df
+            else:
+                return df_init
+
+        elif field == Field.REGIONS_COORDS_BOW:
+            df_init = init_coords_bows(self.regions)
+            if DAO.is_file(filepath):
+                df = DAO.read_csv(filepath)
+                df["sample"] = df["sample"].astype(str)
+                df = upsert(df_init, using=df, cols=columns_upsert[field])
                 return df
             else:
                 return df_init

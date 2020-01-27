@@ -293,8 +293,8 @@ class RegionAdjuster:
         self.block = block
 
     def run(self) -> None:
-        regions = self.block.get(Field.COORDS_REGIONS)
+        regions = self.block.get(Field.REGIONS_COORDS_BOW)
 
         adjust_regions(regions)
 
-        self.block.save(regions, Field.COORDS_REGIONS)
+        self.block.save(regions, Field.REGIONS_COORDS_BOW)
