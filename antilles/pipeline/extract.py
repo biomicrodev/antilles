@@ -194,23 +194,23 @@ class Extractor:
         self.block = block
 
     def adjust(self):
-        coords = self.block.get(Field.COORDS_SLIDES)
+        coords = self.block.get(Field.IMAGES_COORDS)
         angles = self.block.get(Field.ANGLES_COARSE)
 
         annotate_slides(coords, angles)
 
-        self.block.save(coords, Field.COORDS_SLIDES)
+        self.block.save(coords, Field.IMAGES_COORDS)
         self.block.save(angles, Field.ANGLES_COARSE)
 
     def extract(self, params: Dict[str, Any]) -> None:
         self.log.info("Extracting wedges ... ")
         self.block.clean()
 
-        regions_prev = self.block.get(Field.COORDS_BOW)
+        regions_prev = self.block.get(Field.IMAGES_COORDS_BOW)
         regions = self.extract_wedges(params["wedge"])
         regions = update_translate(regions, using=regions_prev)
 
-        self.block.save(regions, Field.COORDS_BOW)
+        self.block.save(regions, Field.IMAGES_COORDS_BOW)
         self.log.info("Extracting wedges complete.")
 
     def extract_wedges(self, params: Dict[str, Any]) -> DataFrame:
@@ -219,7 +219,7 @@ class Extractor:
         settings = {
             "samples": self.block.samples,
             "devices": self.project.config["devices"],
-            "coords": self.block.get(Field.COORDS_SLIDES),
+            "coords": self.block.get(Field.IMAGES_COORDS),
             "angles": self.block.get(Field.ANGLES_COARSE),
         }
 

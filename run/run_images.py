@@ -72,7 +72,7 @@ A script to analyze regions of drug diffusion in histological images.
     the well from analysis.
 
 8. The fourth step is a transformation of the pandas.DataFrame into a format that
-    CellProfiler is able to understand, which is a file called 'CELLPROFILER_INPUT.csv'.
+    CellProfiler is able to understand, which is a file called 'CELLPROFILER_IMAGE_INPUT.csv'.
 
     This includes changing the column names and unpacking the metadata column from a
     json object into individual columns.
@@ -83,7 +83,7 @@ A script to analyze regions of drug diffusion in histological images.
 
 10. Specify the regular expression within the Metadata module as '^(?P<Filename>.*)',
     and specify the CSV file from which the bow coordinates will be read
-    ('CELLPROFILER_INPUT.csv').
+    ('CELLPROFILER_IMAGE_INPUT.csv').
 
     This allows each image to be linked with its corresponding metadata. Ensure that
     each piece of metadata is typed properly (coordinates are integers, etc.).

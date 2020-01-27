@@ -16,12 +16,12 @@ from .wholeslideimage import WholeSlideImage
 
 class Field(Enum):
     ANGLES_COARSE = "ANGLES_COARSE"
-    COORDS_SLIDES = "COORDS_SLIDES"
-    COORDS_IMAGES = "COORDS_IMAGES"
-    COORDS_BOW = "COORDS_BOW"
+    IMAGES_COORDS = "IMAGES_COORDS"  # IMAGES_COORDS
+    IMAGES_COORDS_BOW = "IMAGES_COORDS_BOW"  # IMAGES_COORDS_BOW
+    CELLPROFILER_IMAGE_INPUT = "CELLPROFILER_IMAGE_INPUT"  # CELLPROFILER_INPUT
 
-    CELLPROFILER_INPUT = "CELLPROFILER_INPUT"
-    CELLPROFILER_OUTPUT = "CELLPROFILER_OUTPUT"
+    REGIONS_COORDS_BOW = "REGIONS_COORDS_BOW"  # REGIONS_COORDS_BOW
+    CELLPROFILER_REGION_INPUT = "CELLPROFILER_REGION_INPUT"
 
 
 class Step(Enum):
@@ -43,9 +43,9 @@ columns = [
 ]
 columns_sort_by = ["block", "level", "sample", "panel"]
 columns_upsert = {
-    Field.COORDS_SLIDES: ["project", "block", "panel", "level", "sample", "cohorts"],
+    Field.IMAGES_COORDS: ["project", "block", "panel", "level", "sample", "cohorts"],
     Field.ANGLES_COARSE: ["sample"],
-    Field.COORDS_BOW: [],
+    Field.IMAGES_COORDS_BOW: [],
 }
 
 
@@ -240,7 +240,7 @@ class Block:
         return images
 
     def init(self, field: Field) -> pandas.DataFrame:
-        if field == Field.COORDS_SLIDES:
+        if field == Field.IMAGES_COORDS:
             return init_coords_slides(self.images, self.samples)
         elif field == Field.ANGLES_COARSE:
             return init_angles_coarse(self.samples)
@@ -251,7 +251,7 @@ class Block:
         filename = join("annotations", f"{field.value}.csv")
         filepath = join(self.relpath, filename)
 
-        if field == Field.COORDS_SLIDES:
+        if field == Field.IMAGES_COORDS:
             df_init = init_coords_slides(self.images, self.samples)
             if DAO.is_file(filepath):
                 df = DAO.read_csv(filepath)
@@ -271,7 +271,7 @@ class Block:
             else:
                 return df_init
 
-        elif field == Field.COORDS_BOW:
+        elif field == Field.IMAGES_COORDS_BOW:
             # df_init = init_coords_bows(self.regions)
             df_init = pandas.DataFrame(
                 columns=[

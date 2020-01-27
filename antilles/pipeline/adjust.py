@@ -279,8 +279,8 @@ class Adjuster:
         self.block = block
 
     def run(self) -> None:
-        regions = self.block.get(Field.COORDS_BOW)
+        regions = self.block.get(Field.IMAGES_COORDS_BOW)
 
         adjust_regions(regions)
 
-        self.block.save(regions, Field.COORDS_BOW)
+        self.block.save(regions, Field.IMAGES_COORDS_BOW)

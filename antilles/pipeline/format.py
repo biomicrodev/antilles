@@ -15,7 +15,7 @@ class Formatter:
         self.block = block
 
     def run(self) -> None:
-        regions: pandas.DataFrame = self.block.get(Field.COORDS_BOW)
+        regions: pandas.DataFrame = self.block.get(Field.IMAGES_COORDS_BOW)
 
         metadata = regions["metadata"]
 
@@ -60,4 +60,4 @@ class Formatter:
         regions["Filename"] = regions["Filename"].apply(lambda s: os.path.basename(s))
         regions["Include"] = metadata.apply(lambda s: json.loads(s)["include"])
 
-        self.block.save(regions, Field.CELLPROFILER_INPUT)
+        self.block.save(regions, Field.CELLPROFILER_IMAGE_INPUT)
