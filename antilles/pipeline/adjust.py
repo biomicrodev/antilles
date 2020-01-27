@@ -284,3 +284,17 @@ class Adjuster:
         adjust_regions(regions)
 
         self.block.save(regions, Field.IMAGES_COORDS_BOW)
+
+
+class RegionAdjuster:
+    def __init__(self, project: Project, block: Block):
+        self.log = logging.getLogger(__name__)
+        self.project = project
+        self.block = block
+
+    def run(self) -> None:
+        regions = self.block.get(Field.COORDS_REGIONS)
+
+        adjust_regions(regions)
+
+        self.block.save(regions, Field.COORDS_REGIONS)
